@@ -1,0 +1,7 @@
+{
+  // Line-length (MD013) is disabled project-wide: these docs use tables and
+  // annotated code-block trees where long lines are structural, not
+  // accidental, and wrapping them would break the table/diagram itself.
+  // All other default markdownlint rules stay on.
+  "MD013": false
+}
