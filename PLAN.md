@@ -194,20 +194,22 @@ dd-mm-yyyy consistently.
       everything (`is_allowed_user()`/`is_admin()` both check the
       *caller's* profile). UI-level guard only, not enforced server-side —
       see SPEC.md for why that's an accepted gap for now.
-- [ ] SQL migration (`20260830100000_admin_manage_users.sql`) applied and
-      tested directly against the live DB. **Not yet done**: deploying the
-      Edge Function (needs the Supabase CLI logged in — can't be done via
-      the GitHub integration or direct DB access, both used for everything
-      else so far) and manually testing create-user/set-password/edit/
-      change-own-password end-to-end in the real app.
+- [x] SQL migration applied and tested directly against the live DB. Edge
+      Function deployed via the Supabase CLI (needs a one-time
+      `supabase login` — doesn't auto-deploy via the GitHub integration
+      like migrations, see SPEC.md). Verified end-to-end in the real app:
+      create, edit, set-password, delete (with and without reassignment),
+      change-own-password, and the self-lockout guard all confirmed
+      working by the user.
 
-**Exit criteria**: admin creates a new user via "Manage Users" and that
-user can log in with the given credentials; admin edits another user's
-role and it takes effect (RLS-enforced, not just hidden in the UI); admin
-sets another user's password and they can log in with it; any user changes
-their own password via "Change Password" and can log back in with the new
-one; the "Manage Users" edit form refuses to let the signed-in admin
-demote/deactivate themselves.
+**Exit criteria — met**: admin creates a new user via "Manage Users" and
+that user can log in with the given credentials; admin edits another
+user's role and it takes effect (RLS-enforced, not just hidden in the UI);
+admin sets another user's password and they can log in with it; any user
+changes their own password via "Change Password" and can log back in with
+the new one; the "Manage Users" edit form refuses to let the signed-in
+admin demote/deactivate themselves; deleting a user with records fails
+cleanly, and succeeds once reassigned to another user.
 
 ## Phase 5 — `.docx` export
 

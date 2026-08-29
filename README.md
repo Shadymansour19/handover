@@ -3,10 +3,10 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phases 1–4 (auth, Maintenance CRUD, operation tracking,
-date-range display) are verified end-to-end. User management (Phase 4.5)
-is built but needs the Edge Function deployed and manually tested — see
-[PLAN.md](PLAN.md) for what's built vs. what's next.
+**Status**: Phases 1–4.5 (auth, Maintenance CRUD, operation tracking,
+date-range display, user management) are verified end-to-end. Next up:
+`.docx` export (Phase 5) — see [PLAN.md](PLAN.md) for what's built vs.
+what's next.
 
 ## Reference docs
 
