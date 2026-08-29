@@ -49,15 +49,15 @@
    equipment block to the next. table-layout: fixed + these widths (same
    percentages on every table, all the same overall width) keep every
    table's columns — and their header labels — lined up with each other. */
-.col-start-date {
+.col-date {
   width: 15%;
 }
 
-.col-scope {
+.col-detail {
   width: 45%;
 }
 
-.col-status {
+.col-note {
   width: 20%;
 }
 
@@ -98,6 +98,13 @@
 
 .row-deleted {
   opacity: 0.6;
+}
+
+/* Maintenance records and operation events share one combined,
+   chronological table per equipment (Phase 4) — this is the only visual
+   cue telling them apart, since they otherwise reuse the same columns. */
+.row-operation {
+  background: rgba(56, 189, 248, 0.06);
 }
 
 .deleted-tag {

@@ -2,8 +2,8 @@
 
 Vanilla JS + Vite, built as a PWA via `vite-plugin-pwa` (generateSW strategy
 — app-shell caching only, per SPEC.md). No UI framework. This reflects the
-actual current tree (Phase 1 + 2 + 3 built) — see PLAN.md for what's still
-planned in later phases.
+actual current tree (Phase 1 + 2 + 3 + 4 built) — see PLAN.md for what's
+still planned in later phases.
 
 ```text
 handover/
@@ -41,21 +41,25 @@ handover/
     │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG action icons (view/edit/delete/restore)
-    │   ├── modal.js            # openModal(): overlay/close/escape-key boilerplate, used by every modal
+    │   ├── modal.js            # openModal(): overlay/close/escape-key + onClose() cleanup hook
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
+    │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
+    │   │                       # used by recordsTable.js now, and Phase 5's export later (same shape)
     │   └── docxExport.js       # Phase 5: docx generation
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete
-    │   ├── operationEvents.js     # fetch/history + create/update + soft-delete; equipment_status fetch
+    │   ├── operationEvents.js     # fetch (range + per-equipment history) + create/update +
+    │   │                          # soft-delete/restore/hard-delete; equipment_status fetch
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution
     │   └── systemsEquipment.js    # reference data (systems + nested equipment, ordered)
     │
     └── views/                  # each view is a function that renders into a container element
         ├── loginView.js        # username/email + password form
         ├── mainView.js         # controller: DOM wiring, event delegation, data orchestration
-        ├── recordsTable.js     # pure rendering: (systems, records, permissions, equipmentStatuses)
-        │                       # -> HTML string; split out of mainView.js once that mixed concerns
+        ├── recordsTable.js     # pure rendering: (systems, records, operationEvents, permissions,
+        │                       # equipmentStatuses) -> HTML string, one combined chronological
+        │                       # table per equipment; split out of mainView.js once that mixed concerns
         ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two forms
         ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal (edit)
         ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal (edit)
@@ -87,6 +91,12 @@ handover/
   data-to-HTML rendering functions. `recordsTable.js` holds only the pure
   part (`renderSystemsHTML` and its private helpers) — no DOM queries, no
   listeners, easy to reason about (or eventually test) in isolation.
+- **Combined-table action buttons carry a `data-record-type` attribute**
+  (`"maintenance"` or `"operation"`) — since Phase 4 put both row kinds in
+  the same table, "edit"/"delete"/"restore"/"hard-delete" are ambiguous
+  action names on their own; `mainView.js`'s click delegation branches on
+  this attribute before doing anything else to know which data array and
+  handler set applies.
 - **`renderMaintenanceForm`/`renderOperationForm` are embeddable, not just
   modal-only** — each fills a given container element and wires itself,
   independent of how that container got on the page. `newRecordModal.js`

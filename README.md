@@ -3,10 +3,10 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phase 1 (auth) and Phase 2 (Maintenance CRUD) are verified
-end-to-end. Phase 3 (operation tracking) is built but not yet manually
-verified against live data — see [PLAN.md](PLAN.md) for what's built vs.
-what's next.
+**Status**: Phases 1–3 (auth, Maintenance CRUD, operation tracking) are
+verified end-to-end. Phase 4 (unified date-range filter) is built but not
+yet manually verified against live data — see [PLAN.md](PLAN.md) for
+what's built vs. what's next.
 
 ## Reference docs
 
@@ -51,7 +51,7 @@ what's next.
    npm run dev
    ```
 
-## What's implemented (Phase 1 + 2 + 3)
+## What's implemented (Phase 1 + 2 + 3 + 4)
 
 - Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
@@ -70,11 +70,16 @@ what's next.
 - Tracked equipment (PHVII GTG / Main Compressor / Booster Compressor,
   excluding Generic) shows a green "(Running)" tag and a "History" button
   opening the full event history for that unit, with permission-gated
-  Edit/Delete per event.
+  Edit/Delete per event and the same admin view/restore/permanent-delete as
+  maintenance records.
+- The main view's per-equipment table now shows operation events alongside
+  maintenance records, combined into one chronologically-sorted table
+  within the current date filter — not just visible via History anymore. A
+  Swap shows under both units involved.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
-Not yet implemented: the unified date-range filter across both record
-types, and `.docx` export — see [PLAN.md](PLAN.md) Phases 4–6.
+Not yet implemented: `.docx` export — see [PLAN.md](PLAN.md) Phase 5, and
+PWA polish (Phase 6).
 
 Icons in `public/icons/` are placeholders generated with ImageMagick
 (Phase 6 replaces them with real branding).

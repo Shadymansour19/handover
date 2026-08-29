@@ -129,22 +129,50 @@ built (and tested) in Phase 1. This phase was near-entirely frontend.
       on a 3-day-old Run event shouldn't fail because the equipment is
       Stopped for unrelated reasons today). Ownership/admin RLS still
       governs who can edit at all.
-- [ ] Not yet manually verified against live data — build is clean, but no
-      one has clicked through create (each action + Swap) → history →
-      edit → delete against the real Supabase project yet.
+- [x] Manually verified end-to-end against live data: create (each action
+      + Swap), rejection messages, History, edit, delete, admin
+      restore/permanent-delete, and the action-menu collapse fix all
+      confirmed working in the real app.
 
-**Exit criteria**: create a Run event, see the equipment show "(Running)";
-try to Run it again and get rejected; Stop it and see the tag disappear;
-Swap two units and see both flip; open History and see all of it, edit one
-event's comment, delete another and see it disappear from history.
+**Exit criteria — met**: create a Run event, see the equipment show
+"(Running)"; try to Run it again and get rejected; Stop it and see the tag
+disappear; Swap two units and see both flip; open History and see all of
+it, edit one event's comment, delete another and see it disappear from
+history.
 
 ## Phase 4 — Date range filter
 
-- Wire the From/To filter (default last 7 days) across both record types in
-  the main view: maintenance records show on date-range overlap, operation
-  events show if their date falls in range.
-- Edge cases: open-ended `end_date` (still in progress) counted as
-  overlapping today onward; single-day filter (From == To).
+- [x] Operation events now show in the main view's per-equipment table
+      (`fetchOperationEvents`), not just the History modal — combined
+      chronologically with maintenance records via a new pure helper,
+      `lib/combinedTimeline.js` (`buildEquipmentTimeline`), written to be
+      reused as-is by Phase 5's export (same "combined chronological
+      table... Swap under both equipment" requirement).
+- [x] Maintenance records: existing overlap check
+      (`start_date <= to AND (end_date IS NULL OR end_date >= from)`)
+      already handled the open-ended-`end_date` edge case correctly from
+      Phase 1/2 — nothing to change there.
+- [x] Operation events: date-falls-in-range check
+      (`event_timestamp` between local-midnight `from` and local-end-of-day
+      `to`), matching SPEC.md's "shown if their date falls in range" (a
+      point-in-time check, not an overlap check).
+- [x] Row-level actions (Edit/Delete/admin Restore/Delete-forever) work for
+      operation-event rows in the combined table too, not just from the
+      History modal — routed by a new `data-record-type` attribute on each
+      action button, since maintenance and operation rows share the same
+      action names ("edit", "delete", ...) but need different handlers.
+- [x] Operation event rows get a subtle background tint (`.row-operation`)
+      and a "⚙" prefix on the action label — the only visual cue
+      distinguishing them from maintenance rows, since both share the same
+      four columns (relabeled "Date" / "Scope / Action" / "Status /
+      Comment" / "Actions" to fit both row types honestly).
+- [ ] Not yet manually verified against live data.
+
+**Exit criteria**: an operation event created today shows in the main
+table under its equipment (not just in History); a Swap shows under both
+units involved; changing the From/To range changes which operation events
+appear; editing/deleting an operation event directly from the main table
+(not via History) works and is permission-gated the same way.
 
 ## Phase 5 — `.docx` export
 

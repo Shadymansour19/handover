@@ -37,6 +37,32 @@ export async function fetchEquipmentHistory(equipmentId, { includeDeleted = fals
   return data
 }
 
+// Events whose date falls within [from, to] (both local calendar days) —
+// spec: "operation events shown if their date falls in range", unlike
+// maintenance records' start/end overlap check. Not scoped to one
+// equipment — like fetchMaintenanceRecords, callers group the flat result
+// by equipment_id/secondary_equipment_id themselves
+// (lib/combinedTimeline.js).
+export async function fetchOperationEvents({ from, to, includeDeleted = false }) {
+  const fromLocalStart = new Date(`${from}T00:00:00`).toISOString()
+  const toLocalEnd = new Date(`${to}T23:59:59.999`).toISOString()
+
+  let query = supabase
+    .from('operation_events')
+    .select(SELECT_COLUMNS)
+    .gte('event_timestamp', fromLocalStart)
+    .lte('event_timestamp', toLocalEnd)
+    .order('event_timestamp', { ascending: false })
+
+  if (!includeDeleted) {
+    query = query.is('deleted_at', null)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
 // `fields`: event_timestamp, action, system_id, equipment_id,
 // secondary_equipment_id (Swap only), comment. created_by defaults to
 // auth.uid() server-side. The operation_event_biu trigger rejects
