@@ -230,19 +230,36 @@ cleanly, and succeeds once reassigned to another user.
       label: "Swap → X" on the primary side, "Swap ← Y" on the secondary
       side) — verified directly by generating a real test document and
       inspecting its XML content, not just a clean build.
-- [x] Any system with zero activity in the period is omitted entirely —
-      unlike the main view (where PHVII GTG/Main Compressor/Booster
-      Compressor always show even with zero maintenance records), this
-      applies to *every* system for export, per spec. Verified in the same
-      test: an empty Workshop was correctly absent from the output.
+- [x] Omission rule refined (2026-08-30, after the initial "omit every
+      empty system" pass): Workshop/Others/Scarab GTG are omitted entirely
+      when empty (system **and** per-equipment, matching the main view's
+      `hide_when_empty` rule exactly); the other three systems are never
+      omitted and their real equipment always shows even with zero
+      activity (a "No activity in this period" placeholder row) — but
+      every system's "Generic" catch-all equipment entry is specifically
+      omitted when it has no activity, tracked system or not. Verified
+      directly: a real test document with one populated/one empty/one
+      empty-Generic equipment per system confirmed exactly this.
+- [x] Title reads "Handover - {exporter's full name}" (falls back to
+      username, then email) — uses the same `profiles` name-resolution
+      already built for "Created by" (Phase 4).
+- [x] Table redesigned per feedback: Date/Status columns narrow (15%/20%),
+      Scope wide (65%) and now carries the whole record — bold
+      `work_scope` (or the action, for an operation event), then a bulleted
+      "Detailed Work Done:" section and a bulleted "Comments:" section,
+      each omitted entirely when that field is empty rather than showing
+      an empty heading. Maintenance rows show a `start - end` (or `start -
+      Ongoing` for an open-ended record) date range instead of just the
+      start date.
 - [x] Export always excludes deleted rows regardless of whether the admin
       currently has "Show deleted" on for their own browsing — fetches
       fresh data with `includeDeleted: false` rather than reusing
       `state.records`, since the export is meant to be the "official"
       record for the period.
 - [ ] Not yet manually verified against live data / a real Word viewer —
-      the test document was verified structurally (valid docx, correct
-      XML content) but nobody has opened it in actual Word/LibreOffice yet.
+      both test documents were verified structurally (valid docx, correct
+      XML content, correct column-width percentages) but nobody has opened
+      one in actual Word/LibreOffice yet.
 
 **Exit criteria**: click Export for the current date range, open the
 downloaded `.docx` in Word (or equivalent) and confirm it looks right —

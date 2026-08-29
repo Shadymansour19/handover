@@ -214,8 +214,12 @@ every equipment row, even with zero records).
 - Export button: `.docx` for current filtered range — System banner (styled)
   → Equipment sub-header (styled, shows Running status) → combined
   chronological table of maintenance records + operation events, Swap events
-  appear under **both** equipment involved. Systems with zero activity in the
-  period are omitted entirely from the export.
+  appear under **both** equipment involved. **Revised 2026-08-30**: omission
+  ended up matching the main view's `hide_when_empty` rule (only
+  Workshop/Others/Scarab GTG omit when empty — not literally every system,
+  as first built and then corrected) plus one export-only addition: every
+  system's "Generic" catch-all equipment is omitted when it has no
+  activity, tracked system or not.
 - Auth: email + password login (originally spec'd as magic link — see
   "2026-08-29 — auth pivot" above), admin-created accounts only, enforced
   via RLS.

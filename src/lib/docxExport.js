@@ -23,53 +23,121 @@ const EQUIPMENT_HEADER_COLOR = '2563EB'
 const RUNNING_COLOR = '15803D'
 const TABLE_HEADER_FILL = 'E2E8F0'
 
-const COLUMN_WIDTHS = [20, 45, 35] // Date | Scope/Action | Status/Comment, percent
+// Date | Scope | Status, percent — scope carries work_scope/detailed_steps/
+// comment (or the action + comment for an operation event) all bulleted
+// together, so it needs most of the row; Date and Status are short values.
+const COLUMN_WIDTHS = [15, 65, 20]
 
-function cell(text, { header = false, width } = {}) {
+function cell(content, { header = false, width, columnSpan } = {}) {
+  const children = Array.isArray(content)
+    ? content
+    : [new Paragraph({ children: [new TextRun({ text: String(content ?? ''), bold: header })] })]
+
   return new TableCell({
     width: width ? { size: width, type: WidthType.PERCENTAGE } : undefined,
+    columnSpan,
     shading: header ? { fill: TABLE_HEADER_FILL, type: ShadingType.CLEAR } : undefined,
+    children,
+  })
+}
+
+function headerRow() {
+  return new TableRow({
+    children: ['Date', 'Scope', 'Status'].map((text, i) =>
+      cell(text, { header: true, width: COLUMN_WIDTHS[i] })
+    ),
+  })
+}
+
+function noActivityRow() {
+  return new TableRow({ children: [cell('No activity in this period', { columnSpan: 3 })] })
+}
+
+function bulletParagraphs(text) {
+  return (text ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text: line })] }))
+}
+
+function labeledBulletSection(label, text) {
+  if (!text || !text.trim()) return []
+  return [
+    new Paragraph({ spacing: { before: 150 }, children: [new TextRun({ text: label, bold: true })] }),
+    ...bulletParagraphs(text),
+  ]
+}
+
+// SPEC.md's date-range filter treats an open-ended end_date as "still in
+// progress" — the export spells that out as "Ongoing" rather than leaving
+// it blank.
+function maintenanceDateRange(record) {
+  const end = record.end_date ? formatDateDMY(record.end_date) : 'Ongoing'
+  return `${formatDateDMY(record.start_date)} - ${end}`
+}
+
+function maintenanceScopeParagraphs(record) {
+  return [
+    new Paragraph({ children: [new TextRun({ text: record.work_scope, bold: true })] }),
+    ...labeledBulletSection('Detailed Work Done:', record.detailed_steps),
+    ...labeledBulletSection('Comments:', record.comment),
+  ]
+}
+
+function maintenanceRow(record) {
+  const status =
+    record.work_status === 'Other' && record.work_status_other ? record.work_status_other : record.work_status
+  return new TableRow({
     children: [
-      new Paragraph({
-        children: [new TextRun({ text: String(text ?? ''), bold: header })],
-      }),
+      cell(maintenanceDateRange(record), { width: COLUMN_WIDTHS[0] }),
+      cell(maintenanceScopeParagraphs(record), { width: COLUMN_WIDTHS[1] }),
+      cell(status, { width: COLUMN_WIDTHS[2] }),
     ],
   })
 }
 
-function row(cells, options) {
+function operationActionLabel(event, equipmentId, nameOf) {
+  const isSecondarySide = event.secondary_equipment_id === equipmentId
+  if (isSecondarySide) return `Swap ← ${nameOf(event.equipment_id)}`
+  if (event.action === 'Swap') return `Swap → ${nameOf(event.secondary_equipment_id)}`
+  return event.action
+}
+
+function operationScopeParagraphs(event, equipmentId, nameOf) {
+  return [
+    new Paragraph({
+      children: [new TextRun({ text: operationActionLabel(event, equipmentId, nameOf), bold: true })],
+    }),
+    ...labeledBulletSection('Comments:', event.comment),
+  ]
+}
+
+function operationRow(event, equipmentId, nameOf) {
   return new TableRow({
-    children: cells.map((text, i) => cell(text, { ...options, width: COLUMN_WIDTHS[i] })),
+    children: [
+      cell(formatDateTimeDMY(event.event_timestamp), { width: COLUMN_WIDTHS[0] }),
+      cell(operationScopeParagraphs(event, equipmentId, nameOf), { width: COLUMN_WIDTHS[1] }),
+      // Operation events have no work_status-equivalent field — left blank
+      // rather than inventing one.
+      cell('', { width: COLUMN_WIDTHS[2] }),
+    ],
   })
 }
 
-function maintenanceRowCells(record) {
-  const status =
-    record.work_status === 'Other' && record.work_status_other ? record.work_status_other : record.work_status
-  return [formatDateDMY(record.start_date), record.work_scope, status]
-}
-
-function operationRowCells(event, equipmentId, nameOf) {
-  const isSecondarySide = event.secondary_equipment_id === equipmentId
-  const actionLabel = isSecondarySide
-    ? `Swap ← ${nameOf(event.equipment_id)}`
-    : event.action === 'Swap'
-      ? `Swap → ${nameOf(event.secondary_equipment_id)}`
-      : event.action
-  return [formatDateTimeDMY(event.event_timestamp), actionLabel, event.comment ?? '']
-}
-
 function buildEquipmentTable(timeline, equipmentId, nameOf) {
-  const rows = [
-    row(['Date', 'Scope / Action', 'Status / Comment'], { header: true }),
-    ...timeline.map((item) =>
-      row(
+  const rows = [headerRow()]
+  if (timeline.length === 0) {
+    rows.push(noActivityRow())
+  } else {
+    for (const item of timeline) {
+      rows.push(
         item.type === 'maintenance'
-          ? maintenanceRowCells(item.record)
-          : operationRowCells(item.record, equipmentId, nameOf)
+          ? maintenanceRow(item.record)
+          : operationRow(item.record, equipmentId, nameOf)
       )
-    ),
-  ]
+    }
+  }
   return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows })
 }
 
@@ -93,7 +161,14 @@ function equipmentHeader(name, isRunning) {
 // systems/records/operationEvents/equipmentStatuses should already be
 // filtered to the desired date range and exclude deleted rows — this
 // function doesn't re-filter or re-check permissions itself.
-export async function exportRangeToDocx({ systems, records, operationEvents, equipmentStatuses, range }) {
+export async function exportRangeToDocx({
+  systems,
+  records,
+  operationEvents,
+  equipmentStatuses,
+  range,
+  exporterName,
+}) {
   const equipmentById = new Map(systems.flatMap((s) => s.equipment).map((eq) => [eq.id, eq]))
   const nameOf = (id) => equipmentById.get(id)?.name ?? '—'
 
@@ -101,7 +176,7 @@ export async function exportRangeToDocx({ systems, records, operationEvents, equ
     new Paragraph({
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: 'Handover — Maintenance & Operations Report' })],
+      children: [new TextRun({ text: `Handover - ${exporterName}` })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -112,39 +187,34 @@ export async function exportRangeToDocx({ systems, records, operationEvents, equ
     }),
   ]
 
-  let anySystemIncluded = false
-
   for (const system of systems) {
-    // Spec: omit ANY system with zero activity in the period — unlike the
-    // main view (where PHVII GTG/Main Compressor/Booster Compressor always
-    // show even with zero maintenance records), the export applies this to
-    // every system, not just Workshop/Others/Scarab GTG.
-    const equipmentWithTimelines = system.equipment
-      .map((eq) => ({ eq, timeline: buildEquipmentTimeline(eq.id, records, operationEvents) }))
-      .filter(({ timeline }) => timeline.length > 0)
+    const equipmentWithTimelines = system.equipment.map((eq) => ({
+      eq,
+      timeline: buildEquipmentTimeline(eq.id, records, operationEvents),
+    }))
 
-    if (equipmentWithTimelines.length === 0) continue
+    // Workshop / Others / Scarab GTG (hide_when_empty): omit any equipment
+    // — and the whole system, if that empties it — with zero activity,
+    // same rule the main view uses. The other three systems (PHVII GTG /
+    // Main Compressor / Booster Compressor): never omit the system itself,
+    // and always keep real (non-Generic) equipment even with zero
+    // activity — but their catch-all "Generic" entry is still omitted if
+    // it has nothing in it, in every system, tracked or not.
+    const equipmentToShow = system.hide_when_empty
+      ? equipmentWithTimelines.filter(({ timeline }) => timeline.length > 0)
+      : equipmentWithTimelines.filter(({ eq, timeline }) => !eq.is_generic || timeline.length > 0)
 
-    anySystemIncluded = true
+    if (system.hide_when_empty && equipmentToShow.length === 0) continue
+
     children.push(systemBanner(system.name))
 
-    for (const { eq, timeline } of equipmentWithTimelines) {
+    for (const { eq, timeline } of equipmentToShow) {
       const isTracked = system.operation_tracked && !eq.is_generic
       const isRunning = isTracked && equipmentStatuses.get(eq.id) === 'Running'
 
       children.push(equipmentHeader(eq.name, isRunning))
       children.push(buildEquipmentTable(timeline, eq.id, nameOf))
     }
-  }
-
-  if (!anySystemIncluded) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 400 },
-        children: [new TextRun({ text: 'No activity recorded in this date range.', italics: true })],
-      })
-    )
   }
 
   const doc = new Document({ sections: [{ children }] })

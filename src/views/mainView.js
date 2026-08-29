@@ -114,6 +114,7 @@ export async function renderMainView(container, { session, onSignOut }) {
         operationEvents,
         equipmentStatuses: state.equipmentStatuses,
         range: currentRange,
+        exporterName: state.profileNames.get(session.user.id) ?? session.user.email,
       })
       downloadBlob(blob, `Handover_${currentRange.from}_to_${currentRange.to}.docx`)
     } catch (err) {
