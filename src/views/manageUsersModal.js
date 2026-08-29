@@ -1,13 +1,14 @@
-import { fetchUsers, updateProfile, createUser, setUserPassword } from '../data/users.js'
+import { fetchUsers, updateProfile, createUser, setUserPassword, deleteUser } from '../data/users.js'
 import { escapeHTML } from '../lib/html.js'
 import { openModal } from '../lib/modal.js'
 
 // Admin-only screen: list every user (list_users() RPC — checks admin
 // status itself), create a new one, edit role/username/full name/active
-// status, or set someone's password. Creating a user and setting someone
-// ELSE's password both go through the admin-manage-users Edge Function
-// (need the service_role key); everything else is a plain RLS-governed
-// update (profiles_update, admin-only).
+// status, set someone's password, or permanently delete their account.
+// Creating a user, setting someone ELSE's password, and deleting a user all
+// go through the admin-manage-users Edge Function (need the service_role
+// key); everything else is a plain RLS-governed update (profiles_update,
+// admin-only).
 //
 // Self-protection: an admin can't demote or deactivate their OWN account
 // here — tested directly against the database that doing so instantly
@@ -60,6 +61,8 @@ export async function openManageUsersModal({ currentUserId }) {
                 <div class="row-menu__dropdown" hidden>
                   <button data-action="edit" data-user-id="${user.id}">Edit</button>
                   <button data-action="set-password" data-user-id="${user.id}">Set password</button>
+                  <button data-action="delete" data-user-id="${user.id}"
+                          ${isSelf ? 'disabled title="You can\'t delete your own account"' : ''}>Delete</button>
                 </div>
               </div>
             </td>
@@ -135,8 +138,26 @@ export async function openManageUsersModal({ currentUserId }) {
       openEditUserModal({ user, isSelf: user.id === currentUserId, onSaved: load })
     } else if (button.dataset.action === 'set-password') {
       openSetPasswordModal({ user })
+    } else if (button.dataset.action === 'delete') {
+      handleDeleteUser(user)
     }
   })
+
+  async function handleDeleteUser(user) {
+    if (
+      !window.confirm(
+        `Permanently delete "${user.username}" (${user.email})? This cannot be undone. If they've ever created a maintenance record or operation event, this will fail — deactivate them instead of deleting in that case.`
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteUser(user.id)
+      load()
+    } catch (err) {
+      window.alert(err.message || 'Failed to delete user.')
+    }
+  }
 
   await load()
 }

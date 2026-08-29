@@ -128,6 +128,32 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true }, 200)
     }
 
+    if (body.action === 'delete') {
+      const { userId } = body
+      if (!userId) {
+        return jsonResponse({ error: 'userId is required' }, 400)
+      }
+      if (userId === callerUser.id) {
+        return jsonResponse({ error: "You can't delete your own account." }, 400)
+      }
+
+      // profiles.id -> auth.users(id) is ON DELETE CASCADE, so the profile
+      // row cleans up automatically. maintenance_records.created_by and
+      // operation_events.created_by are NOT cascading (plain REFERENCES,
+      // no ON DELETE clause) — deleting a user who has ever created a
+      // record fails with a foreign key error, which surfaces here as-is
+      // rather than a friendlier message. That's deliberate for now: it's
+      // a safety net (can't silently orphan/erase someone's audit trail by
+      // deleting their account), not a bug — such a user would need to be
+      // deactivated instead of deleted.
+      const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
+      if (deleteError) {
+        return jsonResponse({ error: deleteError.message }, 400)
+      }
+
+      return jsonResponse({ ok: true }, 200)
+    }
+
     return jsonResponse({ error: `Unknown action: ${body.action}` }, 400)
   } catch (err) {
     return jsonResponse({ error: err instanceof Error ? err.message : 'Unknown error' }, 500)

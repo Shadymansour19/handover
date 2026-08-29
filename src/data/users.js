@@ -48,16 +48,24 @@ async function invokeAdminUsersFunction(body) {
   return data
 }
 
-// Both of these call the admin-manage-users Edge Function — see that
-// file's header comment for why they can't be plain client calls
-// (creating an account / setting someone else's password both require the
-// service_role key).
+// All three of these call the admin-manage-users Edge Function — see that
+// file's header comment for why they can't be plain client calls (account
+// creation, setting someone else's password, and deleting an account all
+// require the service_role key).
 export async function createUser({ email, password, username, role, fullName }) {
   return invokeAdminUsersFunction({ action: 'create', email, password, username, role, fullName })
 }
 
 export async function setUserPassword(userId, password) {
   return invokeAdminUsersFunction({ action: 'set-password', userId, password })
+}
+
+// Hard delete — permanently removes the auth account (profiles cascades).
+// Fails with a foreign-key error if this user has ever created a
+// maintenance record or operation event (deliberate — see the Edge
+// Function's comment); such a user needs deactivating instead of deleting.
+export async function deleteUser(userId) {
+  return invokeAdminUsersFunction({ action: 'delete', userId })
 }
 
 // A user changing their OWN password — no service_role/Edge Function
