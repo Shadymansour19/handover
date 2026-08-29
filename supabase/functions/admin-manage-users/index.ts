@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === 'delete') {
-      const { userId } = body
+      const { userId, reassignToUserId } = body
       if (!userId) {
         return jsonResponse({ error: 'userId is required' }, 400)
       }
@@ -138,14 +138,42 @@ Deno.serve(async (req) => {
       }
 
       // profiles.id -> auth.users(id) is ON DELETE CASCADE, so the profile
-      // row cleans up automatically. maintenance_records.created_by and
-      // operation_events.created_by are NOT cascading (plain REFERENCES,
-      // no ON DELETE clause) — deleting a user who has ever created a
-      // record fails with a foreign key error, which surfaces here as-is
-      // rather than a friendlier message. That's deliberate for now: it's
-      // a safety net (can't silently orphan/erase someone's audit trail by
-      // deleting their account), not a bug — such a user would need to be
-      // deactivated instead of deleted.
+      // row cleans up automatically. maintenance_records.created_by/
+      // updated_by and operation_events.created_by/updated_by are NOT
+      // cascading (plain REFERENCES, no ON DELETE clause) — deleting a
+      // user who has ever created or edited a record fails with a foreign
+      // key error otherwise. reassignToUserId (optional) points every such
+      // row at a different, still-existing user first, using the
+      // service_role client — bypasses RLS entirely, which is required
+      // here since it must reassign rows this admin doesn't own too.
+      if (reassignToUserId) {
+        if (reassignToUserId === userId) {
+          return jsonResponse({ error: "Can't reassign records to the account being deleted" }, 400)
+        }
+
+        const { data: recipient, error: recipientError } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('id', reassignToUserId)
+          .maybeSingle()
+        if (recipientError || !recipient) {
+          return jsonResponse({ error: 'Reassignment target user not found' }, 400)
+        }
+
+        const reassignments = [
+          adminClient.from('maintenance_records').update({ created_by: reassignToUserId }).eq('created_by', userId),
+          adminClient.from('maintenance_records').update({ updated_by: reassignToUserId }).eq('updated_by', userId),
+          adminClient.from('operation_events').update({ created_by: reassignToUserId }).eq('created_by', userId),
+          adminClient.from('operation_events').update({ updated_by: reassignToUserId }).eq('updated_by', userId),
+        ]
+        for (const reassignment of reassignments) {
+          const { error: reassignError } = await reassignment
+          if (reassignError) {
+            return jsonResponse({ error: reassignError.message }, 400)
+          }
+        }
+      }
+
       const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
       if (deleteError) {
         return jsonResponse({ error: deleteError.message }, 400)

@@ -139,25 +139,13 @@ export async function openManageUsersModal({ currentUserId }) {
     } else if (button.dataset.action === 'set-password') {
       openSetPasswordModal({ user })
     } else if (button.dataset.action === 'delete') {
-      handleDeleteUser(user)
+      openDeleteUserModal({
+        user,
+        otherUsers: currentUsers.filter((u) => u.id !== user.id),
+        onSaved: load,
+      })
     }
   })
-
-  async function handleDeleteUser(user) {
-    if (
-      !window.confirm(
-        `Permanently delete "${user.username}" (${user.email})? This cannot be undone. If they've ever created a maintenance record or operation event, this will fail — deactivate them instead of deleting in that case.`
-      )
-    ) {
-      return
-    }
-    try {
-      await deleteUser(user.id)
-      load()
-    } catch (err) {
-      window.alert(err.message || 'Failed to delete user.')
-    }
-  }
 
   await load()
 }
@@ -340,6 +328,64 @@ function openSetPasswordModal({ user }) {
       errorEl.hidden = false
       errorEl.textContent = err.message || 'Failed to set password.'
     } finally {
+      submitButton.disabled = false
+    }
+  })
+}
+
+function openDeleteUserModal({ user, otherUsers, onSaved }) {
+  const reassignOptions = otherUsers
+    .map((u) => `<option value="${u.id}">${escapeHTML(u.full_name || u.username)}</option>`)
+    .join('')
+
+  const { modalEl, close } = openModal(`
+    <h2>Delete User — ${escapeHTML(user.username)}</h2>
+    <p>Permanently deletes <strong>${escapeHTML(user.username)}</strong>
+       (${escapeHTML(user.email)}). This cannot be undone.</p>
+    <form id="delete-user-form" class="record-form">
+      <label>If they've created or edited any records, reassign those to
+        <select id="field-reassign-to">
+          <option value="">Don't reassign (fails if they have any records)</option>
+          ${reassignOptions}
+        </select>
+      </label>
+      <p id="delete-user-error" class="status status--error" hidden></p>
+      <div class="modal-actions">
+        <button type="button" id="delete-user-cancel">Cancel</button>
+        <button type="submit">Delete permanently</button>
+      </div>
+    </form>
+  `)
+
+  modalEl.querySelector('#delete-user-cancel').addEventListener('click', close)
+
+  const form = modalEl.querySelector('#delete-user-form')
+  const errorEl = modalEl.querySelector('#delete-user-error')
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    errorEl.hidden = true
+
+    const reassignToUserId = modalEl.querySelector('#field-reassign-to').value || null
+
+    if (
+      !window.confirm(
+        `Permanently delete "${user.username}"? This cannot be undone.`
+      )
+    ) {
+      return
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]')
+    submitButton.disabled = true
+
+    try {
+      await deleteUser(user.id, reassignToUserId)
+      close()
+      onSaved?.()
+    } catch (err) {
+      errorEl.hidden = false
+      errorEl.textContent = err.message || 'Failed to delete user.'
       submitButton.disabled = false
     }
   })

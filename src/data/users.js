@@ -61,11 +61,12 @@ export async function setUserPassword(userId, password) {
 }
 
 // Hard delete — permanently removes the auth account (profiles cascades).
-// Fails with a foreign-key error if this user has ever created a
-// maintenance record or operation event (deliberate — see the Edge
-// Function's comment); such a user needs deactivating instead of deleting.
-export async function deleteUser(userId) {
-  return invokeAdminUsersFunction({ action: 'delete', userId })
+// Fails with a foreign-key error if this user has ever created/edited a
+// maintenance record or operation event, unless reassignToUserId is given
+// — the Edge Function points every such row at that (still-existing) user
+// first, then deletes.
+export async function deleteUser(userId, reassignToUserId) {
+  return invokeAdminUsersFunction({ action: 'delete', userId, reassignToUserId })
 }
 
 // A user changing their OWN password — no service_role/Edge Function

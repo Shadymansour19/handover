@@ -179,11 +179,12 @@ dd-mm-yyyy consistently.
 - [x] Admin can set any other user's password (same Edge Function,
       `set-password` action).
 - [x] Admin can permanently delete a user (same Edge Function, `delete`
-      action) — blocked for their own account (self-lockout guard) and
-      fails with a clear foreign-key error for anyone who's ever created a
-      maintenance record or operation event, by design (deactivate them
-      instead — deleting them would either orphan or cascade-erase their
-      past records, neither of which is acceptable for an audit trail).
+      action) — blocked for their own account (self-lockout guard). The
+      "Delete User" modal offers reassigning that user's
+      records to a different, still-existing user first (fixes the
+      foreign-key error that'd otherwise block deleting anyone who's ever
+      created/edited a record); skipping reassignment and hitting that
+      error is also fine — deactivate them instead in that case.
 - [x] Any signed-in user can change their own password ("Change
       Password" in the header) — no Edge Function needed, re-verifies
       the current password first via a fresh sign-in.
