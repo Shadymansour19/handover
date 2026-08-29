@@ -3,11 +3,11 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phases 1–4.5 (auth, Maintenance CRUD, operation tracking,
-date-range display, user management) are verified end-to-end. Phase 5
-(`.docx` export) is built and structurally verified (a generated test
-document was inspected directly) but not yet opened in an actual Word
-viewer — see [PLAN.md](PLAN.md) for what's built vs. what's next.
+**Status**: Phases 1–5 (auth, Maintenance CRUD, operation tracking,
+date-range display, user management, `.docx` export) are verified
+end-to-end, including opening real exported files in Word. Next up: Phase
+6 (PWA polish), which needs a real deploy first — see
+[PLAN.md](PLAN.md) "Deploy".
 
 ## Reference docs
 
@@ -57,12 +57,21 @@ viewer — see [PLAN.md](PLAN.md) for what's built vs. what's next.
    npx supabase functions deploy admin-manage-users
    ```
 
-8. **Install and run**:
+8. **Install and run locally**:
 
    ```sh
    npm install
    npm run dev
    ```
+
+9. **Deploy to Vercel** (needed for real mobile/PWA testing — a phone can't
+   get real service-worker/install behavior from a plain-HTTP LAN
+   connection to a dev machine, only genuine HTTPS): see [PLAN.md](PLAN.md)
+   "Deploy" for the exact steps. Short version: import the repo at
+   [vercel.com](https://vercel.com), add `VITE_SUPABASE_URL` /
+   `VITE_SUPABASE_ANON_KEY` as environment variables in the project
+   settings *before* deploying (`.env.local` is gitignored, Vercel never
+   sees it), then deploy — every `git push` after that auto-redeploys.
 
 ## What's implemented (Phase 1 + 2 + 3 + 4 + 4.5 + 5)
 

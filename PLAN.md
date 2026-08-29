@@ -280,26 +280,47 @@ cleanly, and succeeds once reassigned to another user.
       `keepNext` (stops either from being stranded alone at the bottom of
       a page with its table starting on the next one). All three
       confirmed present in a regenerated test document's XML.
-- [ ] Not yet manually verified against live data / a real Word viewer —
-      both test documents were verified structurally (valid docx, correct
-      XML content, correct column-width percentages) but nobody has opened
-      one in actual Word/LibreOffice yet.
+- [x] Verified in an actual Word viewer, not just structurally — column
+      widths, header/equipment-header pagination behavior, and bulleted
+      Detailed Work Done/Comments (with a real minimal-indent hanging
+      indent, not a plain text prefix) all confirmed by the user directly.
 
-**Exit criteria**: click Export for the current date range, open the
-downloaded `.docx` in Word (or equivalent) and confirm it looks right —
-system banners, equipment headers with Running status, combined
-chronological tables, Swap under both units, empty systems omitted.
+**Exit criteria — met**: click Export for the current date range, open the
+downloaded `.docx` in Word and confirm it looks right — system banners,
+equipment headers with Running status, combined chronological tables,
+Swap under both units, empty systems omitted, correct column widths, no
+awkward page-break orphaning.
 
 ## Phase 6 — PWA polish
 
-- Real icon set (192/512/maskable), manifest metadata, install-prompt UX.
-- Verify offline app-shell behavior on an actual device (Android + iOS
-  "Add to Home Screen"), confirm the "offline shows last-loaded data, no
-  writes" behavior matches SPEC.md's chosen scope.
-- Pass over loading states, empty states, and error messages (e.g. what a
-  signed-in-but-not-allowlisted user actually sees).
+- [ ] Real icon set (192/512/maskable), manifest metadata, install-prompt UX.
+- [ ] Verify offline app-shell behavior on an actual device (Android + iOS
+      "Add to Home Screen"), confirm the "offline shows last-loaded data,
+      no writes" behavior matches SPEC.md's chosen scope. Blocked on
+      Deploy below — a phone can't get real PWA/service-worker behavior
+      from a plain-HTTP LAN connection to a dev machine, only from
+      genuine HTTPS (or localhost, which a phone obviously isn't).
+- [ ] Pass over loading states, empty states, and error messages (e.g. what
+      a signed-in-but-not-allowlisted user actually sees).
 
 ## Deploy
 
-Pick Vercel or Netlify at Phase 1 (either works identically for a static
-Vite build — no decision needed ahead of time).
+**Decided 2026-08-30: Vercel.** Needed now, not just eventually — Phase 6
+can't be tested on a real phone without it (see above). Steps:
+
+1. [vercel.com](https://vercel.com) → sign up/log in (GitHub login is
+   simplest) → "Add New Project" → import this repo.
+2. Vercel auto-detects Vite (framework preset, build command
+   `npm run build`, output directory `dist`) — shouldn't need changing.
+3. **Before deploying**, add the environment variables in the project's
+   settings (Settings → Environment Variables) — `.env.local` is
+   gitignored, so Vercel never sees it, and Vite bakes `VITE_*` vars into
+   the build at build time, not at runtime:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   (Same values as your local `.env.local`.)
+4. Deploy. Vercel gives an `https://*.vercel.app` URL — open that on a
+   phone (not the LAN IP of a dev machine) to test install/offline
+   behavior for real.
+5. Every push to the linked branch auto-redeploys from then on — same
+   `git push` you're already doing for everything else.
