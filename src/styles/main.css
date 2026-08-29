@@ -81,11 +81,19 @@ body {
   font-size: 0.9rem;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
 .date-filter {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin: 1rem 0;
   flex-wrap: wrap;
 }
 
@@ -168,8 +176,44 @@ button:disabled {
 }
 
 .actions {
+  text-align: right;
+}
+
+.row-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.row-menu__trigger {
+  padding: 0.3rem 0.7rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.row-menu__dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
   display: flex;
-  gap: 0.4rem;
+  flex-direction: column;
+  min-width: 130px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.row-menu__dropdown button {
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+}
+
+.row-menu__dropdown button:hover:not(:disabled) {
+  background: var(--surface);
 }
 
 .loading,
@@ -180,4 +224,104 @@ button:disabled {
 
 .error {
   color: var(--error);
+}
+
+/* Modals */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Record form (create/edit) */
+
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.record-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.record-form input,
+.record-form select,
+.record-form textarea {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.record-form textarea {
+  resize: vertical;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-weight: normal;
+  font-size: 0.8rem;
+}
+
+/* Record view (read-only) */
+
+.record-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.record-details dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.record-details dd {
+  margin: 0;
+}
+
+.bullet-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.empty-field {
+  margin: 0;
+  color: var(--text-muted);
+  font-style: italic;
 }

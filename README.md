@@ -3,7 +3,8 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phase 1 (auth + read-only display) is scaffolded — see
+**Status**: Phase 1 (auth) is verified end-to-end; Phase 2 (Maintenance
+CRUD) is built but not yet manually verified against live data — see
 [PLAN.md](PLAN.md) for what's built vs. what's next.
 
 ## Reference docs
@@ -49,19 +50,24 @@ migrating from Google Apps Script to Supabase + a static PWA.
    npm run dev
    ```
 
-## What's implemented (Phase 1)
+## What's implemented (Phase 1 + 2)
 
-- Email + password login screen, session handling, sign-out.
+- Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
   fetches `systems`/`equipment` and `maintenance_records` (default date
   range = last 7 days, adjustable), groups by System → Equipment, and
   applies the hide-when-empty rule for Workshop/Others/Scarab GTG.
+- "+ New Record" modal (Maintenance form), Edit (same modal, pre-filled),
+  read-only View modal with bullet-rendered `detailed_steps`/`comment`, and
+  soft-delete — all permission-gated: a regular user only sees Edit/Delete
+  enabled on their own records, an admin sees them enabled on every record.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
-Not yet implemented: creating/editing/deleting records, operation-event
-tracking and derived Running/Stopped status, and `.docx` export — see
-[PLAN.md](PLAN.md) Phases 2–6. View/Edit/Delete buttons in the UI are
-present but disabled as a placeholder for Phase 2.
+Not yet implemented: operation-event tracking and derived Running/Stopped
+status, and `.docx` export — see [PLAN.md](PLAN.md) Phases 3–6. The
+Maintenance/Operation tab split in "+ New Record" doesn't exist yet either —
+right now it's just the Maintenance form, since there's no Operation side to
+switch to.
 
 Icons in `public/icons/` are placeholders generated with ImageMagick
 (Phase 6 replaces them with real branding).

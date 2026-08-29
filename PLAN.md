@@ -41,26 +41,50 @@ Goal: prove the auth/RLS/data path end to end before any write logic exists.
 - [x] `profiles` + `role`/`is_active` + admin RLS override added in a new
       migration (`20260830000000_profiles_and_roles.sql`), replacing the
       unused `allowed_users` table (it was dropped — never populated).
-- [ ] **In progress — requires the project owner**: push both migrations to
-      GitHub (neither has been pushed yet — the first was run manually,
-      the second not yet applied at all), keep public sign-ups disabled,
-      create the ~10 real users + your own admin account via Authentication
-      > Users > "Add user", promote your account to `role = 'admin'`, and
-      fill in `.env.local`. See README.md "Setup". Code can't be end-to-end
-      verified until this is done.
+- [x] `equipment_status`/`equipment_status_events` views fixed to
+      `security_invoker = true` (`20260830010000_fix_view_rls_bypass.sql`)
+      — they were bypassing RLS entirely before this, flagged by Supabase's
+      own "Unrestricted" linter tag. Caught before Phase 3 puts real data
+      through `operation_events`.
+- [x] `profiles.full_name` + username-or-email login
+      (`lookup_email_by_username` RPC) added
+      (`20260830030000_add_profile_full_name.sql`,
+      `20260830040000_login_by_username.sql`).
+- [x] Admin account created and verified end-to-end: logs in with username
+      `shady`, main view shows `shady (admin)`.
 
-**Exit criteria**: the admin and a normal user can each log in with
-email/password and see live maintenance records grouped correctly; the
-admin sees the "(admin)" tag; nobody without an admin-created account can
-sign in at all (no self-serve path exists).
+**Exit criteria — met**: the admin can log in with username + password and
+see live maintenance records grouped correctly, header shows the
+"(admin)" tag; nobody without an admin-created account can sign in at all
+(no self-serve path exists). Only the ~10 normal users' accounts remain to
+be created when there are real workers ready to use it — not blocking
+further development.
 
 ## Phase 2 — Maintenance CRUD
 
-- "+ New Record" modal, Maintenance tab only (Operation tab stubbed/hidden).
-- View modal with bullet-rendered `detailed_steps`/`comment`.
-- Edit (own records only, per RLS) — `end_date` field disabled in the UI
-  whenever `work_status` is non-terminal, mirroring the DB trigger.
-- Delete = soft delete (sets `deleted_at` via UPDATE, not a real DELETE).
+- [x] "+ New Record" button/modal (Maintenance only — the Operation tab
+      moved to Phase 3, once operation-event tracking exists to back it).
+- [x] View modal: read-only, `detailed_steps`/`comment` rendered as bullet
+      lists (`lib/bullets.js`).
+- [x] Edit: reuses the same form modal pre-filled. Permission-gated in the
+      UI (own records, or any record if admin — mirrors the RLS policy) by
+      disabling the Edit/Delete buttons rather than letting the request
+      fail; RLS is still the actual enforcement, not the disabled attribute.
+- [x] `end_date` auto-fill/lock mirrored client-side in the form for instant
+      feedback — the DB trigger remains the real enforcement.
+- [x] Delete = soft delete (`softDeleteMaintenanceRecord`, sets
+      `deleted_at`). Checks the update actually affected a row rather than
+      trusting a 200 response — PostgREST returns success even when RLS
+      silently blocks an update that matches 0 rows, which would otherwise
+      look like "delete succeeded" when it didn't.
+- [ ] Not yet manually verified against live data (build is clean, but no
+      one has clicked through create → edit → delete → view against the
+      real Supabase project yet).
+
+**Exit criteria**: create a record, see it appear grouped correctly; edit
+it and see the change persist; soft-delete it and see it disappear from the
+list; confirm a non-owner, non-admin account can't edit/delete it (buttons
+disabled) while the admin can.
 
 ## Phase 3 — Operation tracking
 
