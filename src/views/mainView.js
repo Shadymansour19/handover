@@ -5,21 +5,25 @@ import {
   restoreMaintenanceRecord,
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
+import { fetchEquipmentStatuses } from '../data/operationEvents.js'
 import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
+import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
+import { openHistoryModal } from './historyModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 
-// Phase 2 slice: Maintenance CRUD (create/edit/soft-delete + read-only
-// View). Operation tracking and export land in Phase 3+ (see PLAN.md).
+// Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) slice. Export
+// and the unified date-range filter across both record types land in
+// Phase 4/5 (see PLAN.md).
 export async function renderMainView(container, { session, onSignOut }) {
   const range = getDefaultRange()
 
   // Loaded data the delegated click handler below needs access to —
   // refreshed on every reload() call so handlers always see current state.
-  const state = { systems: [], records: [], profile: null }
+  const state = { systems: [], records: [], profile: null, equipmentStatuses: new Map() }
 
   container.innerHTML = `
     <header class="app-header">
@@ -65,9 +69,9 @@ export async function renderMainView(container, { session, onSignOut }) {
   })
 
   container.querySelector('#new-record').addEventListener('click', () => {
-    openMaintenanceRecordModal({
-      mode: 'create',
+    openNewRecordModal({
       systems: state.systems,
+      equipmentStatuses: state.equipmentStatuses,
       onSaved: reload,
     })
   })
@@ -102,6 +106,22 @@ export async function renderMainView(container, { session, onSignOut }) {
     const button = event.target.closest('button[data-action]')
     if (!button) return
     closeAllMenus()
+
+    if (button.dataset.action === 'history') {
+      const equipment = state.systems
+        .flatMap((s) => s.equipment)
+        .find((e) => e.id === button.dataset.equipmentId)
+      if (!equipment) return
+      openHistoryModal({
+        equipment,
+        systems: state.systems,
+        equipmentStatuses: state.equipmentStatuses,
+        userId: session.user.id,
+        isAdmin: state.profile?.role === 'admin',
+        onChanged: reload,
+      })
+      return
+    }
 
     const record = state.records.find((r) => r.id === button.dataset.recordId)
     if (!record) return
@@ -174,13 +194,15 @@ export async function renderMainView(container, { session, onSignOut }) {
       const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
       const isAdmin = profile.role === 'admin'
 
-      const [systems, records] = await Promise.all([
+      const [systems, records, equipmentStatuses] = await Promise.all([
         fetchSystemsWithEquipment(),
         fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
+        fetchEquipmentStatuses(),
       ])
       state.systems = systems
       state.records = records
       state.profile = profile
+      state.equipmentStatuses = equipmentStatuses
 
       const currentUserEl = container.querySelector('#current-user')
       if (currentUserEl) {
@@ -189,10 +211,12 @@ export async function renderMainView(container, { session, onSignOut }) {
 
       container.querySelector('#show-deleted-wrap').hidden = !isAdmin
 
-      recordsContainer.innerHTML = renderSystemsHTML(systems, records, {
-        userId: session.user.id,
-        isAdmin,
-      })
+      recordsContainer.innerHTML = renderSystemsHTML(
+        systems,
+        records,
+        { userId: session.user.id, isAdmin },
+        equipmentStatuses
+      )
     } catch (err) {
       recordsContainer.innerHTML = `<p class="error">Failed to load records: ${escapeHTML(
         err.message || String(err)

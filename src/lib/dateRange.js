@@ -19,3 +19,20 @@ export function getDefaultRange() {
   const from = new Date(today.getTime() - 6 * DAY_MS)
   return { from: toISODate(from), to: toISODate(today) }
 }
+
+// `<input type="datetime-local">` needs "YYYY-MM-DDTHH:MM" in the viewer's
+// local time (not UTC) — the browser interprets that value as local time
+// both when reading it back out and when displaying it, so this pairs with
+// `new Date(inputValue).toISOString()` to round-trip correctly through
+// Postgres's timestamptz.
+export function toLocalDatetimeInput(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  )
+}
+
+export function nowLocalDatetimeInput() {
+  return toLocalDatetimeInput(new Date())
+}

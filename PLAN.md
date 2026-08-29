@@ -92,15 +92,45 @@ record via "Show deleted".
 
 ## Phase 3 — Operation tracking
 
-- Operation tab in "+ New Record": Action → Timestamp → System → Equipment
-  (filtered via `equipment_status` per the action's required state) →
-  Secondary Equipment (Swap only, filtered to Stopped units) → Comment.
-- Client-side validation mirroring spec rules (Run rejected if already
-  Running, etc.) before insert; surface the DB trigger's rejection message
-  as a fallback for anything the client missed.
-- "(Running)" green label next to tracked equipment in the main view.
-- "History" modal per tracked equipment: list events, Edit/Delete (own
-  events only).
+Needed almost no new SQL — the `operation_events` table, its RLS, the
+`equipment_status` view, and `soft_delete_operation_event` were all already
+built (and tested) in Phase 1. This phase was near-entirely frontend.
+
+- [x] Operation tab in "+ New Record" (`newRecordModal.js` tab-switches
+      between `recordModal.js`'s and `operationEventModal.js`'s forms):
+      Action → Timestamp → System (tracked systems only) → Equipment
+      (auto-filtered by `equipment_status` per the action's required
+      state) → Secondary Equipment (Swap only, filtered to Stopped units)
+      → Comment.
+- [x] Client-side validation (`lib/equipmentStatus.js`) mirroring SPEC.md's
+      rules (Run/Run Test/Spin/Crank rejected if already Running,
+      Stop/Trip rejected if already Stopped, Swap requires primary Running
+      + secondary Stopped) — re-checked against a freshly-fetched status
+      snapshot right before submit, not just the snapshot the modal opened
+      with, to close most of the race window between two people acting on
+      the same equipment. Still app-layer only, not a DB trigger — see
+      SPEC.md "Business rules enforced at the DB layer" for why, and
+      revisit if this ever proves insufficient (e.g. a second client).
+- [x] "(Running)" green label + a "History" button next to tracked,
+      non-Generic equipment in the main view (`recordsTable.js`).
+- [x] History modal (`historyModal.js`): all operation events for that
+      unit (not date-range-limited — full history, per spec), Edit/Delete
+      per event, permission-gated the same way as maintenance records (own
+      event, or admin) via the same RLS already in place.
+- [x] Editing an existing event skips the live-status validation
+      (deliberate: enforcing "current" equipment status against an edit of
+      a possibly-old event doesn't make sense — e.g. fixing a comment typo
+      on a 3-day-old Run event shouldn't fail because the equipment is
+      Stopped for unrelated reasons today). Ownership/admin RLS still
+      governs who can edit at all.
+- [ ] Not yet manually verified against live data — build is clean, but no
+      one has clicked through create (each action + Swap) → history →
+      edit → delete against the real Supabase project yet.
+
+**Exit criteria**: create a Run event, see the equipment show "(Running)";
+try to Run it again and get rejected; Stop it and see the tag disappear;
+Swap two units and see both flip; open History and see all of it, edit one
+event's comment, delete another and see it disappear from history.
 
 ## Phase 4 — Date range filter
 

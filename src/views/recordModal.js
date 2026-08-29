@@ -4,10 +4,11 @@ import { openModal } from '../lib/modal.js'
 import { WORK_STATUSES, isTerminalStatus } from '../lib/constants.js'
 import { todayISO } from '../lib/dateRange.js'
 
-// Only the Maintenance form exists so far — the Operation tab (Action /
-// Timestamp / System / Equipment / Secondary Equipment / Comment) lands in
-// Phase 3 alongside operation-event tracking. See PLAN.md.
-export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
+// Fills `container` with the Maintenance form and wires it — no modal
+// opening here, so this can be embedded either standalone (edit, via
+// openMaintenanceRecordModal below) or as one tab's content inside the
+// "+ New Record" modal (see newRecordModal.js).
+export function renderMaintenanceForm(container, { mode, record, systems, onSaved, onCancel }) {
   const isEdit = mode === 'edit'
   const initial = record ?? {
     system_id: '',
@@ -33,8 +34,7 @@ export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
       `<option value="${status}" ${status === initial.work_status ? 'selected' : ''}>${status}</option>`
   ).join('')
 
-  const { modalEl, close } = openModal(`
-    <h2>${isEdit ? 'Edit' : 'New'} Maintenance Record</h2>
+  container.innerHTML = `
     <form id="record-form" class="record-form">
       <label>System
         <select id="field-system" required>
@@ -73,16 +73,16 @@ export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
         <button type="submit">${isEdit ? 'Save changes' : 'Create record'}</button>
       </div>
     </form>
-  `)
+  `
 
-  const systemSelect = modalEl.querySelector('#field-system')
-  const equipmentSelect = modalEl.querySelector('#field-equipment')
-  const endDateInput = modalEl.querySelector('#field-end-date')
-  const statusSelect = modalEl.querySelector('#field-work-status')
-  const otherWrap = modalEl.querySelector('#field-work-status-other-wrap')
-  const otherInput = modalEl.querySelector('#field-work-status-other')
-  const errorEl = modalEl.querySelector('#record-form-error')
-  const form = modalEl.querySelector('#record-form')
+  const systemSelect = container.querySelector('#field-system')
+  const equipmentSelect = container.querySelector('#field-equipment')
+  const endDateInput = container.querySelector('#field-end-date')
+  const statusSelect = container.querySelector('#field-work-status')
+  const otherWrap = container.querySelector('#field-work-status-other-wrap')
+  const otherInput = container.querySelector('#field-work-status-other')
+  const errorEl = container.querySelector('#record-form-error')
+  const form = container.querySelector('#record-form')
 
   function populateEquipment(systemId, selectedEquipmentId) {
     const system = systems.find((s) => s.id === systemId)
@@ -125,7 +125,7 @@ export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
   syncEndDateState()
   syncOtherStatusVisibility()
 
-  modalEl.querySelector('#record-cancel').addEventListener('click', close)
+  container.querySelector('#record-cancel').addEventListener('click', () => onCancel?.())
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
@@ -134,13 +134,13 @@ export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
     const fields = {
       system_id: systemSelect.value,
       equipment_id: equipmentSelect.value,
-      start_date: modalEl.querySelector('#field-start-date').value,
+      start_date: container.querySelector('#field-start-date').value,
       end_date: endDateInput.disabled ? null : endDateInput.value || null,
-      work_scope: modalEl.querySelector('#field-work-scope').value.trim(),
-      detailed_steps: modalEl.querySelector('#field-detailed-steps').value,
+      work_scope: container.querySelector('#field-work-scope').value.trim(),
+      detailed_steps: container.querySelector('#field-detailed-steps').value,
       work_status: statusSelect.value,
       work_status_other: statusSelect.value === 'Other' ? otherInput.value.trim() : null,
-      comment: modalEl.querySelector('#field-comment').value,
+      comment: container.querySelector('#field-comment').value,
     }
 
     const submitButton = form.querySelector('button[type="submit"]')
@@ -152,12 +152,32 @@ export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
       } else {
         await createMaintenanceRecord(fields)
       }
-      close()
       onSaved?.()
     } catch (err) {
       errorEl.hidden = false
       errorEl.textContent = err.message || 'Failed to save record.'
       submitButton.disabled = false
     }
+  })
+}
+
+// Standalone modal wrapper — used for the Edit flow (View/Edit/Delete menu
+// on an existing record). The "+ New Record" flow instead embeds
+// renderMaintenanceForm directly as one tab of newRecordModal.js.
+export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
+  const { modalEl, close } = openModal(`
+    <h2>${mode === 'edit' ? 'Edit' : 'New'} Maintenance Record</h2>
+    <div id="maintenance-form-container"></div>
+  `)
+
+  renderMaintenanceForm(modalEl.querySelector('#maintenance-form-container'), {
+    mode,
+    record,
+    systems,
+    onCancel: close,
+    onSaved: () => {
+      close()
+      onSaved?.()
+    },
   })
 }

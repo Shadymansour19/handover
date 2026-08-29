@@ -22,6 +22,10 @@
   max-width: 520px;
 }
 
+.modal--wide {
+  max-width: 720px;
+}
+
 .modal h2 {
   margin-top: 0;
 }
@@ -31,6 +35,34 @@
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+/* "+ New Record" Maintenance/Operation tab toggle */
+
+.tab-switch {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.25rem;
+  color: var(--text-muted);
+}
+
+.tab-button:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--text);
+}
+
+.tab-button.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
 }
 
 /* Record form (create/edit) */

@@ -2,7 +2,7 @@
 
 Vanilla JS + Vite, built as a PWA via `vite-plugin-pwa` (generateSW strategy
 — app-shell caching only, per SPEC.md). No UI framework. This reflects the
-actual current tree (Phase 1 + 2 built) — see PLAN.md for what's still
+actual current tree (Phase 1 + 2 + 3 built) — see PLAN.md for what's still
 planned in later phases.
 
 ```text
@@ -36,29 +36,31 @@ handover/
     │   └── modal.css           # modal chrome, record form, read-only View modal fields
     │
     ├── lib/
-    │   ├── constants.js        # WORK_STATUSES, terminal-status check — mirrors the DB enum/trigger
-    │   ├── dateRange.js        # default "last 7 days", ISO-date helpers
+    │   ├── constants.js        # WORK_STATUSES, ACTIONS, terminal-status check — mirror the DB enums
+    │   ├── dateRange.js        # default "last 7 days", ISO-date + datetime-local input helpers
     │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG action icons (view/edit/delete/restore)
-    │   ├── modal.js            # openModal(): overlay/close/escape-key boilerplate, used by both modals
-    │   ├── equipmentStatus.js  # Phase 3: fetch equipment_status view; running/stopped helpers
+    │   ├── modal.js            # openModal(): overlay/close/escape-key boilerplate, used by every modal
+    │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   └── docxExport.js       # Phase 5: docx generation
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete
+    │   ├── operationEvents.js     # fetch/history + create/update + soft-delete; equipment_status fetch
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution
-    │   ├── systemsEquipment.js    # reference data (systems + nested equipment, ordered)
-    │   └── operationEvents.js     # Phase 3
+    │   └── systemsEquipment.js    # reference data (systems + nested equipment, ordered)
     │
     └── views/                  # each view is a function that renders into a container element
         ├── loginView.js        # username/email + password form
         ├── mainView.js         # controller: DOM wiring, event delegation, data orchestration
-        ├── recordsTable.js     # pure rendering: (systems, records, permissions) -> HTML string,
-        │                       # split out of mainView.js once that file mixed too many concerns
-        ├── recordModal.js      # + New Record / Edit — Maintenance form (Operation tab is Phase 3)
+        ├── recordsTable.js     # pure rendering: (systems, records, permissions, equipmentStatuses)
+        │                       # -> HTML string; split out of mainView.js once that mixed concerns
+        ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two forms
+        ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal (edit)
+        ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal (edit)
         ├── viewRecordModal.js  # read-only View modal, bullet rendering
-        └── historyModal.js     # Phase 3: operation events history per equipment
+        └── historyModal.js     # all operation events for one unit; Edit/Delete per event
 ```
 
 ## Notes
@@ -85,6 +87,13 @@ handover/
   data-to-HTML rendering functions. `recordsTable.js` holds only the pure
   part (`renderSystemsHTML` and its private helpers) — no DOM queries, no
   listeners, easy to reason about (or eventually test) in isolation.
+- **`renderMaintenanceForm`/`renderOperationForm` are embeddable, not just
+  modal-only** — each fills a given container element and wires itself,
+  independent of how that container got on the page. `newRecordModal.js`
+  embeds both (one per tab) inside one modal for "+ New Record";
+  `openMaintenanceRecordModal`/`openOperationEventModal` each just wrap
+  their form in a single-purpose modal for editing an existing record.
+  Avoids duplicating the form logic between the two entry points.
 - **Env vars**: Vite exposes `import.meta.env.VITE_*` — so `.env.local` keys
   should be `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. The anon key is
   safe to ship client-side; it relies entirely on RLS (see

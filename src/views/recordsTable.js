@@ -6,9 +6,9 @@
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 
-export function renderSystemsHTML(systems, records, permissions) {
+export function renderSystemsHTML(systems, records, permissions, equipmentStatuses) {
   const sections = systems
-    .map((system) => renderSystemSection(system, records, permissions))
+    .map((system) => renderSystemSection(system, records, permissions, equipmentStatuses))
     .filter(Boolean)
 
   if (sections.length === 0) {
@@ -17,7 +17,7 @@ export function renderSystemsHTML(systems, records, permissions) {
   return sections.join('\n')
 }
 
-function renderSystemSection(system, records, permissions) {
+function renderSystemSection(system, records, permissions, equipmentStatuses) {
   const systemRecords = records.filter((r) => r.system_id === system.id)
 
   let equipmentList = system.equipment
@@ -30,8 +30,19 @@ function renderSystemSection(system, records, permissions) {
     if (equipmentList.length === 0) return null
   }
 
+  // Operation tracking applies only to these systems, and never to their
+  // Generic equipment entry (SPEC.md) — checked here once per equipment
+  // rather than re-derived in renderEquipmentSection.
   const equipmentSections = equipmentList
-    .map((eq) => renderEquipmentSection(eq, systemRecords, permissions))
+    .map((eq) =>
+      renderEquipmentSection(
+        eq,
+        systemRecords,
+        permissions,
+        system.operation_tracked && !eq.is_generic,
+        equipmentStatuses
+      )
+    )
     .join('\n')
 
   return `
@@ -42,7 +53,7 @@ function renderSystemSection(system, records, permissions) {
   `
 }
 
-function renderEquipmentSection(equipment, systemRecords, permissions) {
+function renderEquipmentSection(equipment, systemRecords, permissions, isTracked, equipmentStatuses) {
   const records = systemRecords
     .filter((r) => r.equipment_id === equipment.id)
     .sort((a, b) => (a.start_date < b.start_date ? 1 : -1))
@@ -51,9 +62,19 @@ function renderEquipmentSection(equipment, systemRecords, permissions) {
     ? records.map((r) => renderRecordRow(r, permissions)).join('\n')
     : '<tr><td colspan="4" class="no-records">No records in range</td></tr>'
 
+  const trackingHTML = isTracked
+    ? `
+        ${equipmentStatuses.get(equipment.id) === 'Running' ? '<span class="running">(Running)</span>' : ''}
+        <button type="button" class="history-button" data-action="history" data-equipment-id="${equipment.id}">History</button>
+      `
+    : ''
+
   return `
     <div class="equipment-block">
-      <h3 class="equipment-header">${escapeHTML(equipment.name)}</h3>
+      <h3 class="equipment-header">
+        ${escapeHTML(equipment.name)}
+        ${trackingHTML}
+      </h3>
       <table class="records-table">
         <colgroup>
           <col class="col-start-date" />

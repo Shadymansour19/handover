@@ -3,9 +3,10 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phase 1 (auth) is verified end-to-end; Phase 2 (Maintenance
-CRUD) is built but not yet manually verified against live data — see
-[PLAN.md](PLAN.md) for what's built vs. what's next.
+**Status**: Phase 1 (auth) and Phase 2 (Maintenance CRUD) are verified
+end-to-end. Phase 3 (operation tracking) is built but not yet manually
+verified against live data — see [PLAN.md](PLAN.md) for what's built vs.
+what's next.
 
 ## Reference docs
 
@@ -50,24 +51,30 @@ CRUD) is built but not yet manually verified against live data — see
    npm run dev
    ```
 
-## What's implemented (Phase 1 + 2)
+## What's implemented (Phase 1 + 2 + 3)
 
 - Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
   fetches `systems`/`equipment` and `maintenance_records` (default date
   range = last 7 days, adjustable), groups by System → Equipment, and
   applies the hide-when-empty rule for Workshop/Others/Scarab GTG.
-- "+ New Record" modal (Maintenance form), Edit (same modal, pre-filled),
-  read-only View modal with bullet-rendered `detailed_steps`/`comment`, and
-  soft-delete — all permission-gated: a regular user only sees Edit/Delete
-  enabled on their own records, an admin sees them enabled on every record.
+- "+ New Record" modal with a Maintenance/Operation tab toggle. Maintenance:
+  create/Edit (same form, pre-filled), read-only View modal with
+  bullet-rendered `detailed_steps`/`comment`, soft-delete, admin
+  view/restore/permanently-delete of deleted records — all permission-gated
+  (own records for regular users, any record for admin).
+- Operation tab: Action → Timestamp → System → Equipment (auto-filtered to
+  valid units for the chosen action) → Secondary Equipment (Swap only) →
+  Comment, with the Run/Stop/Trip/Swap validation rules from SPEC.md
+  enforced client-side.
+- Tracked equipment (PHVII GTG / Main Compressor / Booster Compressor,
+  excluding Generic) shows a green "(Running)" tag and a "History" button
+  opening the full event history for that unit, with permission-gated
+  Edit/Delete per event.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
-Not yet implemented: operation-event tracking and derived Running/Stopped
-status, and `.docx` export — see [PLAN.md](PLAN.md) Phases 3–6. The
-Maintenance/Operation tab split in "+ New Record" doesn't exist yet either —
-right now it's just the Maintenance form, since there's no Operation side to
-switch to.
+Not yet implemented: the unified date-range filter across both record
+types, and `.docx` export — see [PLAN.md](PLAN.md) Phases 4–6.
 
 Icons in `public/icons/` are placeholders generated with ImageMagick
 (Phase 6 replaces them with real branding).

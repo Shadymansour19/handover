@@ -19,3 +19,6 @@ export const TERMINAL_STATUSES = new Set(['Work is Done', 'Job Canceled', 'Job H
 export function isTerminalStatus(status) {
   return TERMINAL_STATUSES.has(status)
 }
+
+// Mirrors `operation_action_enum` (same migration).
+export const ACTIONS = ['Run', 'Stop', 'Trip', 'Run Test', 'Spin/Crank', 'Swap']
