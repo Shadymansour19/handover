@@ -6,6 +6,7 @@ import {
 import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
+import { ICONS } from '../lib/icons.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
 
@@ -206,6 +207,12 @@ function renderEquipmentSection(equipment, systemRecords, permissions) {
     <div class="equipment-block">
       <h3 class="equipment-header">${escapeHTML(equipment.name)}</h3>
       <table class="records-table">
+        <colgroup>
+          <col class="col-start-date" />
+          <col class="col-scope" />
+          <col class="col-status" />
+          <col class="col-actions" />
+        </colgroup>
         <thead>
           <tr><th>Start date</th><th>Scope</th><th>Status</th><th>Actions</th></tr>
         </thead>
@@ -235,9 +242,9 @@ function renderRecordRow(record, permissions) {
           <button type="button" class="row-menu__trigger" data-action="toggle-menu"
                   data-record-id="${record.id}" aria-label="Actions" aria-haspopup="true">⋮</button>
           <div class="row-menu__dropdown" hidden>
-            <button data-action="view" data-record-id="${record.id}">View</button>
-            <button data-action="edit" data-record-id="${record.id}" ${editDisabled}>Edit</button>
-            <button data-action="delete" data-record-id="${record.id}" ${deleteDisabled}>Delete</button>
+            <button data-action="view" data-record-id="${record.id}">${ICONS.view} View</button>
+            <button data-action="edit" data-record-id="${record.id}" ${editDisabled}>${ICONS.edit} Edit</button>
+            <button data-action="delete" data-record-id="${record.id}" ${deleteDisabled}>${ICONS.delete} Delete</button>
           </div>
         </div>
       </td>

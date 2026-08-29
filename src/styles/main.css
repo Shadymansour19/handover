@@ -159,8 +159,31 @@ button:disabled {
 
 .records-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.9rem;
+}
+
+/* Every equipment section renders its own separate <table>, so without a
+   shared, fixed column layout each one sizes its columns independently
+   based on its own content — headers/cells drift out of alignment from one
+   equipment block to the next. table-layout: fixed + these widths (same
+   percentages on every table, all the same overall width) keep every
+   table's columns — and their header labels — lined up with each other. */
+.col-start-date {
+  width: 15%;
+}
+
+.col-scope {
+  width: 45%;
+}
+
+.col-status {
+  width: 20%;
+}
+
+.col-actions {
+  width: 20%;
 }
 
 .records-table th,
@@ -168,6 +191,7 @@ button:disabled {
   text-align: left;
   padding: 0.5rem;
   border-bottom: 1px solid var(--border);
+  overflow-wrap: break-word;
 }
 
 .records-table .no-records {
@@ -194,9 +218,8 @@ button:disabled {
   position: absolute;
   right: 0;
   top: calc(100% + 0.25rem);
-  display: flex;
   flex-direction: column;
-  min-width: 130px;
+  min-width: 150px;
   background: var(--surface-alt);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -204,12 +227,28 @@ button:disabled {
   z-index: 10;
 }
 
+/* `display: flex` must NOT sit on the bare .row-menu__dropdown rule above —
+   that has the same specificity as the UA stylesheet's `[hidden] { display:
+   none }` and, being defined later, would win and make [hidden] a no-op
+   (this is exactly what happened before: the menu couldn't be closed at
+   all). Gating it behind :not([hidden]) keeps [hidden] in control. */
+.row-menu__dropdown:not([hidden]) {
+  display: flex;
+}
+
 .row-menu__dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   border: none;
   border-radius: 0;
   text-align: left;
   background: transparent;
   padding: 0.5rem 0.75rem;
+}
+
+.row-menu__dropdown button svg {
+  flex-shrink: 0;
 }
 
 .row-menu__dropdown button:hover:not(:disabled) {
