@@ -82,3 +82,15 @@ export async function restoreMaintenanceRecord(id) {
 
   if (error) throw error
 }
+
+// Admin-only, and only on an already soft-deleted record — the RPC
+// enforces both server-side. Irreversible: a real DELETE, not another
+// deleted_at update. Otherwise identical role to the 30-day auto-purge
+// (20260830070000_purge_deleted_after_30_days.sql), just on demand.
+export async function hardDeleteMaintenanceRecord(id) {
+  const { error } = await supabase.rpc('hard_delete_maintenance_record', {
+    record_id: id,
+  })
+
+  if (error) throw error
+}

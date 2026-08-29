@@ -3,6 +3,7 @@ import {
   fetchMaintenanceRecords,
   softDeleteMaintenanceRecord,
   restoreMaintenanceRecord,
+  hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
 import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
@@ -124,6 +125,8 @@ export async function renderMainView(container, { session, onSignOut }) {
       handleDelete(record)
     } else if (button.dataset.action === 'restore') {
       handleRestore(record)
+    } else if (button.dataset.action === 'hard-delete') {
+      handleHardDelete(record)
     }
   })
 
@@ -134,6 +137,22 @@ export async function renderMainView(container, { session, onSignOut }) {
       reload()
     } catch (err) {
       window.alert(err.message || 'Failed to restore record.')
+    }
+  }
+
+  async function handleHardDelete(record) {
+    if (
+      !window.confirm(
+        `Permanently delete the "${record.work_scope}" record? This cannot be undone — there is no restore after this.`
+      )
+    ) {
+      return
+    }
+    try {
+      await hardDeleteMaintenanceRecord(record.id)
+      reload()
+    } catch (err) {
+      window.alert(err.message || 'Failed to permanently delete record.')
     }
   }
 
@@ -265,6 +284,9 @@ function renderRecordRow(record, permissions) {
         { action: 'view', icon: ICONS.view, label: 'View' },
         permissions.isAdmin
           ? { action: 'restore', icon: ICONS.restore, label: 'Restore' }
+          : null,
+        permissions.isAdmin
+          ? { action: 'hard-delete', icon: ICONS.delete, label: 'Delete forever' }
           : null,
       ].filter(Boolean)
     : [
