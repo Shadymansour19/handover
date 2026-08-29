@@ -54,15 +54,21 @@
 }
 
 .col-scope {
-  width: 45%;
+  width: 57%;
 }
 
 .col-status {
   width: 20%;
 }
 
+/* Just the row's ⋮ menu button now — no header label above it (removed
+   along with .col-users-actions's below) — so this only needs to be wide
+   enough for that one button (kept a bit above the absolute minimum since
+   table-layout: fixed cells don't grow to fit an overflowing button — a
+   real risk on narrow phone screens); the width freed up went to
+   col-scope. */
 .col-actions {
-  width: 20%;
+  width: 8%;
 }
 
 /* History modal's table — different columns, same table-layout: fixed
@@ -112,7 +118,7 @@
 }
 
 .col-users-fullname {
-  width: 20%;
+  width: 22%;
 }
 
 .col-users-email {
@@ -127,8 +133,13 @@
   width: 10%;
 }
 
+/* Just the row's ⋮ menu button now — no header label above it (removed
+   along with .col-actions's above) — so this only needs to be wide enough
+   for that one button (kept a bit above the absolute minimum since
+   table-layout: fixed cells don't grow to fit an overflowing button); the
+   width freed up went to fullname/email. */
 .col-users-actions {
-  width: 10%;
+  width: 8%;
 }
 
 .deleted-tag {

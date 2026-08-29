@@ -82,7 +82,7 @@ export async function openManageUsersModal({ currentUserId }) {
           <col class="col-users-actions" />
         </colgroup>
         <thead>
-          <tr><th>Username</th><th>Full name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>Username</th><th>Full name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
