@@ -22,7 +22,7 @@ read this before re-deriving requirements from scratch in a future session.
 | Frontend framework | **Vanilla JS + Vite** | No framework lock-in, smallest bundle, simplest PWA setup. Use `vite-plugin-pwa` for manifest + service worker instead of hand-rolling. |
 | Offline scope | **App-shell caching only** | Service worker caches static assets so the app *launches* offline and shows last-loaded data. Reads/writes require connectivity. No IndexedDB write queue, no sync/conflict logic. |
 | Edit/delete permissions | **Own records only** | RLS restricts UPDATE to rows where `created_by = auth.uid()`. Real DELETE is disabled entirely in favor of soft delete (see below), and the soft-delete "delete" action is implemented as an UPDATE, so the same own-records-only rule applies to it. **Known limitation**: one user cannot fix another user's mistake in the UI. If that becomes a problem, add an admin-override path later (e.g. a `security definer` RPC) rather than loosening RLS broadly. |
-| Delete behavior | **Soft delete** | Rows get `deleted_at` set instead of being removed. Hidden from all client reads via RLS SELECT policy (`deleted_at IS NULL`). Recoverable only via direct DB/service-role access. Real `DELETE` is not granted to authenticated users. |
+| Delete behavior | **Soft delete, 30-day retention** | Rows get `deleted_at` set instead of being removed. Hidden from regular-user reads via RLS SELECT policy (`deleted_at IS NULL`); an admin can see and restore a deleted row via the UI (see 2026-08-30 addition below). After 30 days, a daily `pg_cron` job (`20260830070000_purge_deleted_after_30_days.sql`) permanently deletes it — no restore possible past that point. Real client-side `DELETE` is still never granted; only this scheduled job and the admin restore RPC can change `deleted_at`. |
 
 ## Postgres/RLS gotcha found in Phase 2 (2026-08-29) — soft delete needs an RPC
 
@@ -51,6 +51,13 @@ bug the moment Phase 3 adds delete there — worth remembering if any other
 table ever needs "write a row into a state that its own SELECT policy
 would hide" (this one bit us on first contact and will bite again on any
 new table shaped the same way).
+
+## Decisions made (2026-08-30) — admin restore + purge retention
+
+| Question | Decision | Why / implication |
+| --- | --- | --- |
+| Can admin see/undo a deleted record? | **Yes** | `maintenance_records_select` RLS now allows `deleted_at IS NOT NULL` rows through for `is_admin()`; a `restore_maintenance_record` RPC (same SECURITY DEFINER pattern as delete) clears `deleted_at`. Regular users still can't see deleted rows at all — this is an RLS-level guarantee, not a UI-only hide. `operation_events` was deliberately left out of this one (unlike the delete RPC fix) since it has no delete UI yet — revisit together in Phase 3. |
+| How long do soft-deleted records live before permanent removal? | **30 days** | A daily `pg_cron` job (`purge_soft_deleted_records`, `20260830070000_purge_deleted_after_30_days.sql`) hard-deletes any row with `deleted_at` older than 30 days, for both `maintenance_records` and `operation_events`. Past 30 days a record is gone for good — no admin restore, no direct-DB recovery. Tested against controlled data before relying on it (a 31-day-old deleted row was purged; a 5-day-old one and a never-deleted one both survived). |
 
 ## Decisions made (2026-08-29) — auth pivot
 
