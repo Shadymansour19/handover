@@ -24,6 +24,34 @@ read this before re-deriving requirements from scratch in a future session.
 | Edit/delete permissions | **Own records only** | RLS restricts UPDATE to rows where `created_by = auth.uid()`. Real DELETE is disabled entirely in favor of soft delete (see below), and the soft-delete "delete" action is implemented as an UPDATE, so the same own-records-only rule applies to it. **Known limitation**: one user cannot fix another user's mistake in the UI. If that becomes a problem, add an admin-override path later (e.g. a `security definer` RPC) rather than loosening RLS broadly. |
 | Delete behavior | **Soft delete** | Rows get `deleted_at` set instead of being removed. Hidden from all client reads via RLS SELECT policy (`deleted_at IS NULL`). Recoverable only via direct DB/service-role access. Real `DELETE` is not granted to authenticated users. |
 
+## Postgres/RLS gotcha found in Phase 2 (2026-08-29) — soft delete needs an RPC
+
+Soft-deleting via a plain client-side `UPDATE ... SET deleted_at = now()`
+**always fails RLS**, for every user including admins, with `new row
+violates row-level security policy`. This has nothing to do with
+ownership/admin logic (which was correct) — it's a genuine, documented
+Postgres behavior: **for UPDATE, Postgres implicitly re-checks the table's
+SELECT policy against the resulting row, in addition to the UPDATE
+policy's own `WITH CHECK`, whether or not `RETURNING`/`.select()` is
+used.** Our SELECT policy is `deleted_at IS NULL` — so any update that
+moves `deleted_at` away from `NULL` fails that implicit check immediately,
+independent of the UPDATE policy passing. No ownership/RLS-policy tweak can
+fix this; confirmed empirically (temporarily loosening just the SELECT
+policy made the identical update succeed) before concluding it wasn't a
+deployment/migration-timing issue.
+
+**Fix**: soft delete goes through a `SECURITY DEFINER` RPC
+(`soft_delete_maintenance_record` / `soft_delete_operation_event`,
+`20260830050000_soft_delete_rpc.sql`) instead of a direct client UPDATE.
+The function bypasses RLS internally (runs as its owner) and does its own
+manual authorization check (same own-record-or-admin rule) before writing.
+`operation_events` was given the identical fix pre-emptively, since it has
+the same `deleted_at`-based SELECT policy shape and would hit this exact
+bug the moment Phase 3 adds delete there — worth remembering if any other
+table ever needs "write a row into a state that its own SELECT policy
+would hide" (this one bit us on first contact and will bite again on any
+new table shaped the same way).
+
 ## Decisions made (2026-08-29) — auth pivot
 
 The magic-link plan above was replaced before any real users were onboarded
