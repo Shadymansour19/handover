@@ -72,19 +72,23 @@ further development.
       fail; RLS is still the actual enforcement, not the disabled attribute.
 - [x] `end_date` auto-fill/lock mirrored client-side in the form for instant
       feedback — the DB trigger remains the real enforcement.
-- [x] Delete = soft delete (`softDeleteMaintenanceRecord`, sets
-      `deleted_at`). Checks the update actually affected a row rather than
-      trusting a 200 response — PostgREST returns success even when RLS
-      silently blocks an update that matches 0 rows, which would otherwise
-      look like "delete succeeded" when it didn't.
-- [ ] Not yet manually verified against live data (build is clean, but no
-      one has clicked through create → edit → delete → view against the
-      real Supabase project yet).
+- [x] Delete = soft delete, via a `SECURITY DEFINER` RPC
+      (`soft_delete_maintenance_record`), not a plain client UPDATE — see
+      SPEC.md "Postgres/RLS gotcha found in Phase 2" for why a direct
+      UPDATE setting `deleted_at` always fails RLS regardless of
+      ownership/admin logic, for every user, and needs this pattern.
+- [x] Admin can see soft-deleted records ("Show deleted" toggle) and
+      restore one (`restore_maintenance_record` RPC, same pattern).
+      Regular users still can't see deleted records at all — RLS enforced,
+      not just hidden in the UI.
+- [x] Manually verified end-to-end against live data: create, edit, delete,
+      view, and admin restore all confirmed working in the real app.
 
-**Exit criteria**: create a record, see it appear grouped correctly; edit
-it and see the change persist; soft-delete it and see it disappear from the
-list; confirm a non-owner, non-admin account can't edit/delete it (buttons
-disabled) while the admin can.
+**Exit criteria — met**: create a record, see it appear grouped correctly;
+edit it and see the change persist; soft-delete it and see it disappear
+from the list; a non-owner, non-admin account can't edit/delete it (buttons
+disabled) while the admin can; the admin can view and restore a deleted
+record via "Show deleted".
 
 ## Phase 3 — Operation tracking
 
