@@ -108,11 +108,11 @@
 }
 
 .col-users-fullname {
-  width: 16%;
+  width: 20%;
 }
 
 .col-users-email {
-  width: 32%;
+  width: 36%;
 }
 
 .col-users-role {
@@ -124,7 +124,7 @@
 }
 
 .col-users-actions {
-  width: 18%;
+  width: 10%;
 }
 
 .deleted-tag {
