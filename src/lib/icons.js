@@ -25,12 +25,15 @@ const DOTS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor
 
 const MENU = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`
 
-// The recognizable "PDF file" logo — grey document silhouette with a red
-// PDF ribbon/badge across it — in fixed colors rather than currentColor,
-// since a colored logo (unlike every line icon above) is the point: it
-// should read as "the PDF logo" at a glance, not just another line-art
-// glyph that happens to have PDF's title hint.
-const PDF_LOGO = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#e2e8f0"/><polyline points="14 2 14 8 20 8" fill="none" stroke="#94a3b8" stroke-width="1"/><rect x="2.5" y="12.5" width="15" height="7.5" rx="1" fill="#dc2626"/><text x="10" y="18.3" font-family="Arial, Helvetica, sans-serif" font-size="6" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF</text></svg>`
+// Same document outline as WORD_DOC, with "PDF" itself as the mark
+// (fill="currentColor", like DOTS above, rather than stroked like the
+// outline) — stays in the same monochrome currentColor line-art style as
+// every other icon here (two earlier attempts, a fixed-color red badge
+// and a decorative swoosh, either looked out of place or didn't read as
+// "PDF" clearly enough). Checked by actually rendering it (ImageMagick,
+// both at real 20x20 size and scaled up) rather than trusting the
+// coordinates blind.
+const PDF_LOGO = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="12" y="18.5" font-family="Arial, Helvetica, sans-serif" font-size="6.5" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">PDF</text></svg>`
 
 // 14x14 — sized to match the header dropdown's menu-item rows (same
 // treatment as the row-menu dropdown items in recordsTable.js).
