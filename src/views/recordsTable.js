@@ -90,7 +90,7 @@ function renderEquipmentSection(equipment, systemRecords, permissions, isTracked
           <col class="col-actions" />
         </colgroup>
         <thead>
-          <tr><th>Start date</th><th>Scope</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>Start date</th><th>Scope</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>

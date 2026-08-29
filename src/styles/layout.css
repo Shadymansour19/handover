@@ -36,6 +36,12 @@
   width: auto;
 }
 
+/* column-reverse makes the FIRST DOM child sit at the bottom (main-start)
+   and later ones stack upward from there — so mainView.js must render
+   #fab-toggle before #fab-actions (not the other way around) for the
+   toggle button to stay pinned at the bottom while the actions appear
+   above it; swapped the two once already after the toggle button was
+   found drifting to the top when the actions opened. */
 .fab-cluster {
   position: fixed;
   right: 1.25rem;
