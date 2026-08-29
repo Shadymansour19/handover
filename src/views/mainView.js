@@ -59,7 +59,7 @@ export async function renderMainView(container, { session, onSignOut }) {
               title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
       <div class="fab-actions" id="fab-actions" hidden>
         <button type="button" class="fab fab--sub" id="fab-export-pdf" title="Export PDF" aria-label="Export PDF">${ICONS.pdf}</button>
-        <button type="button" class="fab fab--sub" id="fab-export" title="Export" aria-label="Export">${ICONS.export}</button>
+        <button type="button" class="fab fab--sub" id="fab-export" title="Export Word" aria-label="Export Word">${ICONS.export}</button>
         <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records" aria-label="Filter records">${ICONS.filter}</button>
         <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record" aria-label="Add record">${ICONS.plus}</button>
       </div>
