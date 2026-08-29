@@ -92,6 +92,25 @@ both equipment with the right direction ("→"/"←"), the Running tag, and an
 empty system being omitted entirely — all before ever asking anyone to
 open it in an actual Word viewer.
 
+## Decision (2026-08-30) — main view toolbar redesign: FAB cluster + hamburger menu
+
+Add Record / Filter / Export used to sit as always-visible buttons in an
+inline toolbar row; Sign Out / Change Password / Manage Users sat as
+separate buttons in the header. Both revised to be hidden by default:
+
+- Add Record, Filter, Export now live behind a single circular
+  floating-action-button (FAB) fixed to the bottom-right of the page,
+  showing a dots icon; clicking it expands/collapses three sub-FABs (one
+  per action), each with an icon + `title` hint. Reuses the existing
+  `[hidden]`-gated show/hide + outside-click-to-close mechanics the
+  row-menu (⋮) dropdown already used, generalized into one `setupToggle()`
+  helper in `mainView.js` shared with the header menu below.
+- Filtering (date range + admin-only "show deleted") moved out of the
+  inline form into a dialog (`views/filterModal.js`), opened from the
+  Filter FAB.
+- Sign Out / Change Password / Manage Users moved into a dropdown behind a
+  hamburger (☰) button in the header, using the same toggle mechanism.
+
 ## Decisions made (2026-08-29) — auth pivot
 
 The magic-link plan above was replaced before any real users were onboarded

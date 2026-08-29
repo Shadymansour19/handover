@@ -97,6 +97,15 @@
   resize: vertical;
 }
 
+/* filterModal.js's "Show deleted" checkbox reuses .checkbox-label (layout.css)
+   inside a .record-form — needs to win over record-form's own `label {
+   flex-direction: column }` (higher specificity: two classes vs. one) so the
+   checkbox and its text sit side by side instead of stacked. */
+.record-form label.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+}
+
 .hint {
   color: var(--text-muted);
   font-weight: normal;

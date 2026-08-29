@@ -34,7 +34,7 @@ handover/
     │   ├── variables.css       # :root custom properties
     │   ├── base.css            # reset, page shell, generic button/status/error styles
     │   ├── login.css           # login screen
-    │   ├── layout.css          # app header + toolbar chrome
+    │   ├── layout.css          # app header + floating action button (FAB) cluster chrome
     │   ├── records.css         # system/equipment grouping, records table, row "⋮" menu
     │   └── modal.css           # modal chrome, record form, read-only View modal fields
     │
@@ -77,7 +77,9 @@ handover/
         ├── historyModal.js     # all operation events for one unit; Edit/Delete per event; admin
         │                       # "Show deleted" + Restore/Delete-forever, same as maintenance records
         ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
-        └── changePasswordModal.js  # any signed-in user: change their own password
+        ├── changePasswordModal.js  # any signed-in user: change their own password
+        └── filterModal.js      # date range + admin-only "show deleted" dialog, opened from the
+                                 # main view's Filter FAB (see mainView.js's FAB cluster, Notes below)
 ```
 
 ## Notes
@@ -126,5 +128,12 @@ handover/
   safe to ship client-side; it relies entirely on RLS (see
   `supabase/migrations/`) for protection, which is why the allowlist
   enforcement there matters.
-- **Deploy target** (Vercel or Netlify, either is a static Vite build): not
-  decided yet — doesn't affect any code above, can be picked whenever.
+- **Deploy target**: Vercel (see SPEC.md "Deploy").
+- **Main view toolbar is a floating action button (FAB) cluster, not an
+  inline row** — Add Record/Filter/Export are hidden by default behind a
+  single bottom-right dots FAB (`mainView.js`); Sign Out/Change
+  Password/Manage Users are similarly collapsed behind a header hamburger
+  button. Both reuse the same `setupToggle()` helper (open/close + close on
+  outside click), itself a generalization of the row-menu (⋮) dropdown
+  mechanics already used for per-row/per-user actions — see SPEC.md
+  "2026-08-30 — main view toolbar redesign".

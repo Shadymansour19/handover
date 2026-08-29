@@ -15,7 +15,9 @@ import { openViewRecordModal } from './viewRecordModal.js'
 import { openHistoryModal } from './historyModal.js'
 import { openManageUsersModal } from './manageUsersModal.js'
 import { openChangePasswordModal } from './changePasswordModal.js'
+import { openFilterModal } from './filterModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
+import { ICONS } from '../lib/icons.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
 // (.docx export) slice (see PLAN.md).
@@ -37,25 +39,28 @@ export async function renderMainView(container, { session, onSignOut }) {
       <h1>Handover</h1>
       <div class="app-header__user">
         <span id="current-user">${escapeHTML(session.user.email)}</span>
-        <button id="manage-users" type="button" hidden>Manage Users</button>
-        <button id="change-password" type="button">Change Password</button>
-        <button id="sign-out" type="button">Sign out</button>
+        <div class="row-menu">
+          <button id="user-menu-trigger" type="button" class="row-menu__trigger"
+                  aria-label="Menu" aria-haspopup="true" aria-expanded="false" title="Menu">${ICONS.menu}</button>
+          <div id="user-menu-dropdown" class="row-menu__dropdown" hidden>
+            <button id="manage-users" type="button" hidden>${ICONS.users} Manage Users</button>
+            <button id="change-password" type="button">${ICONS.lock} Change Password</button>
+            <button id="sign-out" type="button">${ICONS.signout} Sign out</button>
+          </div>
+        </div>
       </div>
     </header>
-    <div class="toolbar">
-      <form id="date-filter" class="date-filter">
-        <label>From <input type="date" id="filter-from" value="${range.from}" /></label>
-        <label>To <input type="date" id="filter-to" value="${range.to}" /></label>
-        <button type="submit">Apply</button>
-        <label id="show-deleted-wrap" class="checkbox-label" hidden>
-          <input type="checkbox" id="show-deleted" /> Show deleted
-        </label>
-      </form>
-      <button id="new-record" type="button">+ New Record</button>
-      <button id="export-docx" type="button">Export</button>
-    </div>
     <div id="records-container" class="records-container">
       <p class="loading">Loading…</p>
+    </div>
+    <div class="fab-cluster" id="fab-cluster">
+      <div class="fab-actions" id="fab-actions" hidden>
+        <button type="button" class="fab fab--sub" id="fab-export" title="Export" aria-label="Export">${ICONS.export}</button>
+        <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records" aria-label="Filter records">${ICONS.filter}</button>
+        <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record" aria-label="Add record">${ICONS.plus}</button>
+      </div>
+      <button type="button" class="fab fab--main" id="fab-toggle"
+              title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
     </div>
   `
 
@@ -69,24 +74,41 @@ export async function renderMainView(container, { session, onSignOut }) {
     openChangePasswordModal({ email: session.user.email })
   })
 
+  // Drives both the header's hamburger dropdown and the FAB cluster's
+  // expand/collapse: click the trigger to toggle, click any button inside
+  // the dropdown to close it again, click anywhere else outside it to close
+  // it too. mainView.js only renders once per signed-in session (not
+  // repeatedly opened/closed like a modal), so — same as the row-menu
+  // dropdowns' own document-level listener further below — registering one
+  // document click listener per toggle here doesn't leak.
+  function setupToggle(trigger, dropdown) {
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation()
+      const willOpen = dropdown.hidden
+      dropdown.hidden = !willOpen
+      trigger.setAttribute('aria-expanded', String(willOpen))
+    })
+    dropdown.addEventListener('click', (event) => {
+      if (event.target.closest('button')) {
+        dropdown.hidden = true
+        trigger.setAttribute('aria-expanded', 'false')
+      }
+    })
+    document.addEventListener('click', (event) => {
+      if (!dropdown.hidden && !dropdown.contains(event.target) && event.target !== trigger) {
+        dropdown.hidden = true
+        trigger.setAttribute('aria-expanded', 'false')
+      }
+    })
+  }
+
+  setupToggle(container.querySelector('#user-menu-trigger'), container.querySelector('#user-menu-dropdown'))
+  setupToggle(container.querySelector('#fab-toggle'), container.querySelector('#fab-actions'))
+
   let currentRange = range
   let includeDeleted = false
-  const form = container.querySelector('#date-filter')
-  form.addEventListener('submit', (event) => {
-    event.preventDefault()
-    currentRange = {
-      from: container.querySelector('#filter-from').value,
-      to: container.querySelector('#filter-to').value,
-    }
-    reload()
-  })
 
-  container.querySelector('#show-deleted').addEventListener('change', (event) => {
-    includeDeleted = event.target.checked
-    reload()
-  })
-
-  container.querySelector('#new-record').addEventListener('click', () => {
+  container.querySelector('#fab-new-record').addEventListener('click', () => {
     openNewRecordModal({
       systems: state.systems,
       equipmentStatuses: state.equipmentStatuses,
@@ -94,10 +116,24 @@ export async function renderMainView(container, { session, onSignOut }) {
     })
   })
 
-  container.querySelector('#export-docx').addEventListener('click', handleExport)
+  container.querySelector('#fab-filter').addEventListener('click', () => {
+    openFilterModal({
+      from: currentRange.from,
+      to: currentRange.to,
+      includeDeleted,
+      isAdmin: state.profile?.role === 'admin',
+      onApply: (next) => {
+        currentRange = { from: next.from, to: next.to }
+        includeDeleted = next.includeDeleted
+        reload()
+      },
+    })
+  })
+
+  container.querySelector('#fab-export').addEventListener('click', handleExport)
 
   async function handleExport() {
-    const button = container.querySelector('#export-docx')
+    const button = container.querySelector('#fab-export')
     button.disabled = true
     try {
       // Lazy-loaded: the docx library is large (~350KB) and only needed
@@ -267,7 +303,6 @@ export async function renderMainView(container, { session, onSignOut }) {
         currentUserEl.textContent = `${profile.username}${isAdmin ? ' (admin)' : ''}`
       }
 
-      container.querySelector('#show-deleted-wrap').hidden = !isAdmin
       container.querySelector('#manage-users').hidden = !isAdmin
 
       recordsContainer.innerHTML = renderSystemsHTML(
