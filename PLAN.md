@@ -256,6 +256,22 @@ cleanly, and succeeds once reassigned to another user.
       fresh data with `includeDeleted: false` rather than reusing
       `state.records`, since the export is meant to be the "official"
       record for the period.
+- [x] Column widths actually take effect in Word now (2026-08-30 fix): the
+      percentages were correctly in the XML from the start (verified by
+      inspection), but Word was still auto-fitting to content and
+      rendering equal-width columns anyway — needed an explicit
+      `layout: TableLayoutType.FIXED` on the table, which the earlier
+      "confirmed via XML" check hadn't caught since it only checked the
+      numbers were present, not how Word's default layout mode treats
+      them. Real gap between "structurally correct" and "renders
+      correctly", worth remembering for anything else docx-related.
+- [x] Pagination: the header row is marked `tableHeader` (repeats on each
+      page a table spans, and stops Word orphaning it alone at a page
+      break with the data starting fresh on the next page); both the
+      system banner and equipment header paragraphs are marked
+      `keepNext` (stops either from being stranded alone at the bottom of
+      a page with its table starting on the next one). All three
+      confirmed present in a regenerated test document's XML.
 - [ ] Not yet manually verified against live data / a real Word viewer —
       both test documents were verified structurally (valid docx, correct
       XML content, correct column-width percentages) but nobody has opened

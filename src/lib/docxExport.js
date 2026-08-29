@@ -14,6 +14,7 @@ import {
   WidthType,
   ShadingType,
   AlignmentType,
+  TableLayoutType,
 } from 'docx'
 import { buildEquipmentTimeline } from './combinedTimeline.js'
 import { formatDateDMY, formatDateTimeDMY } from './dateFormat.js'
@@ -43,6 +44,12 @@ function cell(content, { header = false, width, columnSpan } = {}) {
 
 function headerRow() {
   return new TableRow({
+    // Marks this as the repeating header row — besides repeating it on
+    // each page a table spans, this is also what stops Word orphaning the
+    // header alone at the bottom of a page with the first data row
+    // pushed to the next one; Word keeps a header row together with at
+    // least one row of content when it paginates.
+    tableHeader: true,
     children: ['Date', 'Scope', 'Status'].map((text, i) =>
       cell(text, { header: true, width: COLUMN_WIDTHS[i] })
     ),
@@ -138,13 +145,26 @@ function buildEquipmentTable(timeline, equipmentId, nameOf) {
       )
     }
   }
-  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows })
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    // Without this, Word ignores the per-cell percentage widths above and
+    // auto-fits columns to content instead — which is why they all came
+    // out equal width despite the correct percentages already being in
+    // the file (confirmed by inspecting the XML directly; the values were
+    // right, Word just wasn't honoring them without an explicit layout).
+    layout: TableLayoutType.FIXED,
+    rows,
+  })
 }
 
 function systemBanner(name) {
   return new Paragraph({
     shading: { fill: SYSTEM_BANNER_FILL, type: ShadingType.CLEAR },
     spacing: { before: 300, after: 150 },
+    // Keeps the banner on the same page as whatever follows it (the first
+    // equipment header) rather than risking it sitting alone at the
+    // bottom of a page — same reasoning as equipmentHeader() below.
+    keepNext: true,
     children: [new TextRun({ text: name, bold: true, color: 'FFFFFF', size: 28 })],
   })
 }
@@ -154,7 +174,11 @@ function equipmentHeader(name, isRunning) {
   if (isRunning) {
     runs.push(new TextRun({ text: '  (Running)', bold: true, color: RUNNING_COLOR, size: 24 }))
   }
-  return new Paragraph({ spacing: { before: 200, after: 100 }, children: runs })
+  // keepNext ties this paragraph to whatever comes right after it (its
+  // table) for pagination purposes — without it, Word can leave the
+  // headline alone at the bottom of a page with the table starting fresh
+  // on the next one.
+  return new Paragraph({ spacing: { before: 200, after: 100 }, keepNext: true, children: runs })
 }
 
 // Builds the whole document and returns it as a Blob, ready to download.
