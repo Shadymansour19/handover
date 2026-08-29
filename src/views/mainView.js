@@ -5,7 +5,7 @@ import {
   restoreMaintenanceRecord,
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
-import { fetchEquipmentStatuses } from '../data/operationEvents.js'
+import { fetchEquipmentStatuses, fetchOperationEvents } from '../data/operationEvents.js'
 import { fetchOwnProfile, fetchProfileNames } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
@@ -17,9 +17,8 @@ import { openManageUsersModal } from './manageUsersModal.js'
 import { openChangePasswordModal } from './changePasswordModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 
-// Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) slice. Export
-// and the unified date-range filter across both record types land in
-// Phase 4/5 (see PLAN.md).
+// Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
+// (.docx export) slice (see PLAN.md).
 export async function renderMainView(container, { session, onSignOut }) {
   const range = getDefaultRange()
 
@@ -53,6 +52,7 @@ export async function renderMainView(container, { session, onSignOut }) {
         </label>
       </form>
       <button id="new-record" type="button">+ New Record</button>
+      <button id="export-docx" type="button">Export</button>
     </div>
     <div id="records-container" class="records-container">
       <p class="loading">Loading…</p>
@@ -93,6 +93,35 @@ export async function renderMainView(container, { session, onSignOut }) {
       onSaved: reload,
     })
   })
+
+  container.querySelector('#export-docx').addEventListener('click', handleExport)
+
+  async function handleExport() {
+    const button = container.querySelector('#export-docx')
+    button.disabled = true
+    try {
+      // Lazy-loaded: the docx library is large (~350KB) and only needed
+      // once someone actually clicks Export, so this keeps it out of the
+      // main bundle every other page load pays for.
+      const [{ exportRangeToDocx, downloadBlob }, records, operationEvents] = await Promise.all([
+        import('../lib/docxExport.js'),
+        fetchMaintenanceRecords({ ...currentRange, includeDeleted: false }),
+        fetchOperationEvents({ ...currentRange, includeDeleted: false }),
+      ])
+      const blob = await exportRangeToDocx({
+        systems: state.systems,
+        records,
+        operationEvents,
+        equipmentStatuses: state.equipmentStatuses,
+        range: currentRange,
+      })
+      downloadBlob(blob, `Handover_${currentRange.from}_to_${currentRange.to}.docx`)
+    } catch (err) {
+      window.alert(err.message || 'Failed to generate export.')
+    } finally {
+      button.disabled = false
+    }
+  }
 
   // Event delegation: rows are re-rendered wholesale on every reload, so one
   // listener on the container outlives any individual row's buttons.

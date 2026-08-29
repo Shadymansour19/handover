@@ -213,13 +213,41 @@ cleanly, and succeeds once reassigned to another user.
 
 ## Phase 5 — `.docx` export
 
-- Integrate the `docx` npm package.
-- For the current filtered range: System banner (styled) → Equipment
-  sub-header (styled, shows Running status) → one chronological table
-  combining maintenance records + operation events. Swap events appear
-  under both equipment involved.
-- Omit any system with zero activity in the period (not just
-  Workshop/Others/Scarab GTG — all systems, per spec).
+- [x] `docx` npm package integrated, lazy-loaded (`import()` inside the
+      Export click handler, not a top-level import) — it's a large library
+      (~350KB) needed only when Export is actually clicked, so this keeps
+      it out of the bundle every other page load pays for. Confirmed via
+      build output: main bundle back to ~253KB, `docx` split into its own
+      chunk.
+- [x] `lib/docxExport.js`: for the current filtered range, System banner
+      (styled — dark solid fill, white bold text) → Equipment sub-header
+      (styled — colored bold text, green "(Running)" suffix using live
+      `equipment_status`) → one chronological table per equipment
+      combining maintenance records + operation events, reusing
+      `lib/combinedTimeline.js` (kept from the reverted Phase 4 attempt —
+      the export is exactly the use case it was built for).
+- [x] Swap events appear under **both** equipment involved (direction-aware
+      label: "Swap → X" on the primary side, "Swap ← Y" on the secondary
+      side) — verified directly by generating a real test document and
+      inspecting its XML content, not just a clean build.
+- [x] Any system with zero activity in the period is omitted entirely —
+      unlike the main view (where PHVII GTG/Main Compressor/Booster
+      Compressor always show even with zero maintenance records), this
+      applies to *every* system for export, per spec. Verified in the same
+      test: an empty Workshop was correctly absent from the output.
+- [x] Export always excludes deleted rows regardless of whether the admin
+      currently has "Show deleted" on for their own browsing — fetches
+      fresh data with `includeDeleted: false` rather than reusing
+      `state.records`, since the export is meant to be the "official"
+      record for the period.
+- [ ] Not yet manually verified against live data / a real Word viewer —
+      the test document was verified structurally (valid docx, correct
+      XML content) but nobody has opened it in actual Word/LibreOffice yet.
+
+**Exit criteria**: click Export for the current date range, open the
+downloaded `.docx` in Word (or equivalent) and confirm it looks right —
+system banners, equipment headers with Running status, combined
+chronological tables, Swap under both units, empty systems omitted.
 
 ## Phase 6 — PWA polish
 

@@ -2,7 +2,7 @@
 
 Vanilla JS + Vite, built as a PWA via `vite-plugin-pwa` (generateSW strategy
 — app-shell caching only, per SPEC.md). No UI framework. This reflects the
-actual current tree (Phase 1 + 2 + 3 + 4 + 4.5 built) — see PLAN.md for
+actual current tree (Phase 1 + 2 + 3 + 4 + 4.5 + 5 built) — see PLAN.md for
 what's still planned in later phases.
 
 ```text
@@ -51,7 +51,9 @@ handover/
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
     │   │                       # built for Phase 4's main-table attempt (since reverted), kept for
     │   │                       # Phase 5's export, which needs the identical merge logic
-    │   └── docxExport.js       # Phase 5: docx generation
+    │   └── docxExport.js       # docx generation — dynamically import()'d from mainView.js's
+    │                           # Export handler, not a top-level import (keeps the ~350KB
+    │                           # docx library out of the main bundle until actually needed)
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete

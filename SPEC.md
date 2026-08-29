@@ -77,6 +77,21 @@ new table shaped the same way).
 | Can admin see/undo a deleted record? | **Yes** | `maintenance_records_select` RLS now allows `deleted_at IS NOT NULL` rows through for `is_admin()`; a `restore_maintenance_record` RPC (same SECURITY DEFINER pattern as delete) clears `deleted_at`. Regular users still can't see deleted rows at all — this is an RLS-level guarantee, not a UI-only hide. `operation_events` was deliberately left out of this one initially (it had no delete UI at the time) — given the same treatment once Phase 3's History modal existed to expose it: `operation_events_select`, `restore_operation_event`, `hard_delete_operation_event` (`20260830090000_admin_view_restore_operation_events.sql`), with a "Show deleted" toggle in the History modal mirroring the main table's. |
 | How long do soft-deleted records live before permanent removal? | **30 days**, or immediately if an admin chooses to | A daily `pg_cron` job (`purge_soft_deleted_records`, `20260830070000_purge_deleted_after_30_days.sql`) hard-deletes any row with `deleted_at` older than 30 days, for both `maintenance_records` and `operation_events`. Tested against controlled data before relying on it (a 31-day-old deleted row was purged; a 5-day-old one and a never-deleted one both survived). An admin can also permanently delete a soft-deleted record on demand, via `hard_delete_maintenance_record` (`20260830080000_admin_hard_delete.sql`) — same SECURITY DEFINER pattern, only callable on a record that's already soft-deleted (guards against skipping the soft-delete step). Either way, past that point a record is gone for good — no admin restore, no direct-DB recovery. |
 
+## Decision (2026-08-30) — `docx` is lazy-loaded, not a top-level import
+
+The `docx` library is large (~350KB) and only needed once someone actually
+clicks Export. `mainView.js`'s Export handler loads it via a dynamic
+`import('../lib/docxExport.js')` instead of a static top-level import —
+confirmed via build output that this keeps it out of the main bundle
+(~253KB, matching pre-`docx` size) as a separate chunk that only loads on
+demand. The generated document itself was verified directly (not just "the
+build doesn't error"): a real test document was produced from
+representative data and its XML content inspected, confirming dd-mm-yyyy
+formatting, correct chronological ordering, a Swap event appearing under
+both equipment with the right direction ("→"/"←"), the Running tag, and an
+empty system being omitted entirely — all before ever asking anyone to
+open it in an actual Word viewer.
+
 ## Decisions made (2026-08-29) — auth pivot
 
 The magic-link plan above was replaced before any real users were onboarded

@@ -4,9 +4,10 @@ Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
 **Status**: Phases 1–4.5 (auth, Maintenance CRUD, operation tracking,
-date-range display, user management) are verified end-to-end. Next up:
-`.docx` export (Phase 5) — see [PLAN.md](PLAN.md) for what's built vs.
-what's next.
+date-range display, user management) are verified end-to-end. Phase 5
+(`.docx` export) is built and structurally verified (a generated test
+document was inspected directly) but not yet opened in an actual Word
+viewer — see [PLAN.md](PLAN.md) for what's built vs. what's next.
 
 ## Reference docs
 
@@ -63,7 +64,7 @@ what's next.
    npm run dev
    ```
 
-## What's implemented (Phase 1 + 2 + 3 + 4 + 4.5)
+## What's implemented (Phase 1 + 2 + 3 + 4 + 4.5 + 5)
 
 - Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
@@ -92,10 +93,15 @@ what's next.
   Edge Function vs. a plain RLS-governed update.
 - "Change Password" (any signed-in user, in the header): change your own
   password, with current-password re-verification.
+- "Export" button: `.docx` for the current filtered date range — System
+  banner → Equipment sub-header (shows Running status) → one chronological
+  table per equipment combining maintenance records + operation events,
+  Swap events under both units, empty systems omitted entirely. The `docx`
+  library is lazy-loaded only when Export is clicked, not part of the main
+  bundle.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
-Not yet implemented: `.docx` export — see [PLAN.md](PLAN.md) Phase 5, and
-PWA polish (Phase 6).
+Not yet implemented: PWA polish (Phase 6) — see [PLAN.md](PLAN.md).
 
 Icons in `public/icons/` are placeholders generated with ImageMagick
 (Phase 6 replaces them with real branding).
