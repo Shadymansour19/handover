@@ -12,7 +12,10 @@ read this before re-deriving requirements from scratch in a future session.
 - **Auth**: Supabase Auth, email + password (see 2026-08-29 decisions below
   — this superseded the original magic-link plan), restricted to accounts
   the admin creates directly (no public sign-up).
-- **Export**: Client-side `.docx` generation via the `docx` npm library. No PDF.
+- **Export**: Client-side `.docx` generation via the `docx` npm library, plus
+  client-side `.pdf` generation via `pdfmake` (added 2026-08-30 — see
+  "Decision (2026-08-30) — .pdf export added" below; originally spec'd as
+  "no PDF").
 - **Hosting**: static site on Vercel or Netlify (free tier).
 - **Admin user management**: a Supabase Edge Function
   (`supabase/functions/admin-manage-users/`), used only for the two things
@@ -91,6 +94,38 @@ formatting, correct chronological ordering, a Swap event appearing under
 both equipment with the right direction ("→"/"←"), the Running tag, and an
 empty system being omitted entirely — all before ever asking anyone to
 open it in an actual Word viewer.
+
+## Decision (2026-08-30) — `.pdf` export added (reverses "no PDF")
+
+A second export format was requested: `.pdf`, generated client-side via
+`pdfmake` (a plain-JS library with a bundled font set — no native/WASM
+dependency, so it stays fully offline-capable once loaded), exposed as a
+fourth FAB alongside Export (docx)/Filter/Add Record. `lib/pdfExport.js`
+deliberately mirrors `lib/docxExport.js`'s content and omission rules
+exactly (same System banner → Equipment header → chronological table,
+same `hide_when_empty`/Generic-equipment rules, same Swap-on-both-units) —
+only the rendering API differs — so the two formats can't drift apart.
+Verified directly (not just "the build doesn't error"): generated a real
+PDF from representative data via pdfmake's Node API and confirmed with
+`pdftotext` that the text content, table structure, and bullets all came
+through correctly, before ever wiring it into the UI.
+
+One accepted gap versus the `.docx` export: pdfmake has no equivalent of
+`keepNext`/`tableHeader`'s page-break protections (an equipment header
+orphaned alone at the bottom of a page, or a table header separated from
+its first data row) — not chased further for this first pass; revisit if
+it's actually seen happening on a real multi-page export.
+
+Also: `lib/downloadBlob.js` was split out of `docxExport.js` (which
+previously defined and exported it) into its own zero-dependency file, so
+that both `docxExport.js` and the new `pdfExport.js` can use it without
+statically importing (and thus bundling) each other's export library —
+each stays an independently lazy-loaded chunk. `vite.config.js`'s
+`workbox.globPatterns` also picked up a `globIgnores` for both export
+chunks (docx included, not just the new pdfmake one): pdfmake plus its
+bundled font set is ~1.7MB, and neither export library needs to be
+precached for offline use — exporting already requires a live Supabase
+fetch of fresh data regardless of what the service worker has cached.
 
 ## Decision (2026-08-30) — main view toolbar redesign: FAB cluster + hamburger menu
 

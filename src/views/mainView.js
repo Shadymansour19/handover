@@ -18,6 +18,7 @@ import { openChangePasswordModal } from './changePasswordModal.js'
 import { openFilterModal } from './filterModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 import { ICONS } from '../lib/icons.js'
+import { downloadBlob } from '../lib/downloadBlob.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
 // (.docx export) slice (see PLAN.md).
@@ -57,6 +58,7 @@ export async function renderMainView(container, { session, onSignOut }) {
       <button type="button" class="fab fab--main" id="fab-toggle"
               title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
       <div class="fab-actions" id="fab-actions" hidden>
+        <button type="button" class="fab fab--sub" id="fab-export-pdf" title="Export PDF" aria-label="Export PDF">${ICONS.pdf}</button>
         <button type="button" class="fab fab--sub" id="fab-export" title="Export" aria-label="Export">${ICONS.export}</button>
         <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records" aria-label="Filter records">${ICONS.filter}</button>
         <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record" aria-label="Add record">${ICONS.plus}</button>
@@ -130,29 +132,66 @@ export async function renderMainView(container, { session, onSignOut }) {
     })
   })
 
-  container.querySelector('#fab-export').addEventListener('click', handleExport)
+  container.querySelector('#fab-export').addEventListener('click', () => handleExport('docx'))
+  container.querySelector('#fab-export-pdf').addEventListener('click', () => handleExport('pdf'))
 
-  async function handleExport() {
-    const button = container.querySelector('#fab-export')
+  // Shared by both export formats — always the current filter range's
+  // non-deleted data, fetched fresh rather than reused from state.records
+  // (which may itself include deleted rows for an admin with "show
+  // deleted" on, and never includes operation events at all).
+  async function fetchExportData() {
+    const [records, operationEvents] = await Promise.all([
+      fetchMaintenanceRecords({ ...currentRange, includeDeleted: false }),
+      fetchOperationEvents({ ...currentRange, includeDeleted: false }),
+    ])
+    return { records, operationEvents }
+  }
+
+  async function handleExport(format) {
+    const button = container.querySelector(format === 'pdf' ? '#fab-export-pdf' : '#fab-export')
     button.disabled = true
     try {
-      // Lazy-loaded: the docx library is large (~350KB) and only needed
-      // once someone actually clicks Export, so this keeps it out of the
-      // main bundle every other page load pays for.
-      const [{ exportRangeToDocx, downloadBlob }, records, operationEvents] = await Promise.all([
-        import('../lib/docxExport.js'),
-        fetchMaintenanceRecords({ ...currentRange, includeDeleted: false }),
-        fetchOperationEvents({ ...currentRange, includeDeleted: false }),
-      ])
-      const blob = await exportRangeToDocx({
-        systems: state.systems,
-        records,
-        operationEvents,
-        equipmentStatuses: state.equipmentStatuses,
-        range: currentRange,
-        exporterName: state.profileNames.get(session.user.id) ?? session.user.email,
-      })
-      downloadBlob(blob, `Handover_${currentRange.from}_to_${currentRange.to}.docx`)
+      const exporterName = state.profileNames.get(session.user.id) ?? session.user.email
+      const filenameBase = `Handover_${currentRange.from}_to_${currentRange.to}`
+
+      if (format === 'pdf') {
+        // Lazy-loaded: pdfmake (with its bundled font set) is large and
+        // only needed once someone actually clicks Export PDF, so this
+        // keeps it out of the main bundle every other page load pays for
+        // — same reasoning as docx below, kept as two independent chunks
+        // rather than one "exports" bundle so picking one format doesn't
+        // pull in the other's library too.
+        const [{ exportRangeToPdf }, { records, operationEvents }] = await Promise.all([
+          import('../lib/pdfExport.js'),
+          fetchExportData(),
+        ])
+        const blob = await exportRangeToPdf({
+          systems: state.systems,
+          records,
+          operationEvents,
+          equipmentStatuses: state.equipmentStatuses,
+          range: currentRange,
+          exporterName,
+        })
+        downloadBlob(blob, `${filenameBase}.pdf`)
+      } else {
+        // Lazy-loaded: the docx library is large (~350KB) and only needed
+        // once someone actually clicks Export, so this keeps it out of the
+        // main bundle every other page load pays for.
+        const [{ exportRangeToDocx }, { records, operationEvents }] = await Promise.all([
+          import('../lib/docxExport.js'),
+          fetchExportData(),
+        ])
+        const blob = await exportRangeToDocx({
+          systems: state.systems,
+          records,
+          operationEvents,
+          equipmentStatuses: state.equipmentStatuses,
+          range: currentRange,
+          exporterName,
+        })
+        downloadBlob(blob, `${filenameBase}.docx`)
+      }
     } catch (err) {
       window.alert(err.message || 'Failed to generate export.')
     } finally {

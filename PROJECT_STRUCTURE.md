@@ -45,15 +45,25 @@ handover/
     │   │                       # dateRange.js; those must stay browser-native yyyy-mm-dd)
     │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
-    │   ├── icons.js            # inline SVG action icons (view/edit/delete/restore)
+    │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and
+    │   │                       # header menu's larger ones (plus/filter/export/pdf/dots/menu/...)
     │   ├── modal.js            # openModal(): overlay/close/escape-key + onClose() cleanup hook
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
     │   │                       # built for Phase 4's main-table attempt (since reverted), kept for
     │   │                       # Phase 5's export, which needs the identical merge logic
-    │   └── docxExport.js       # docx generation — dynamically import()'d from mainView.js's
-    │                           # Export handler, not a top-level import (keeps the ~350KB
-    │                           # docx library out of the main bundle until actually needed)
+    │   ├── downloadBlob.js     # triggers a browser "Save As" for a Blob — split out of docxExport.js
+    │   │                       # into its own zero-dependency file so it can be shared with
+    │   │                       # pdfExport.js without statically importing (and thus bundling)
+    │   │                       # either export library into the other's lazy chunk
+    │   ├── docxExport.js       # docx generation — dynamically import()'d from mainView.js's
+    │   │                       # Export handler, not a top-level import (keeps the ~350KB
+    │   │                       # docx library out of the main bundle until actually needed)
+    │   └── pdfExport.js        # pdf generation via pdfmake — same lazy-import treatment as
+    │                           # docxExport.js (pdfmake + its bundled fonts are much larger
+    │                           # still); mirrors docxExport.js's content/omission rules exactly,
+    │                           # only the rendering API differs — see SPEC.md "2026-08-30 —
+    │                           # .pdf export added"
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete
@@ -129,6 +139,11 @@ handover/
   `supabase/migrations/`) for protection, which is why the allowlist
   enforcement there matters.
 - **Deploy target**: Vercel (see SPEC.md "Deploy").
+- **The two export libraries (`docx`, `pdfmake`) are excluded from the PWA's
+  precache** via `vite.config.js`'s `workbox.globIgnores` — both are large,
+  only ever loaded on demand when Export/Export PDF is clicked, and
+  exporting needs a live Supabase fetch regardless of what's cached, so
+  there's no offline export use case to precache for.
 - **Main view toolbar is a floating action button (FAB) cluster, not an
   inline row** — Add Record/Filter/Export are hidden by default behind a
   single bottom-right dots FAB (`mainView.js`); Sign Out/Change

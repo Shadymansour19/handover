@@ -298,16 +298,3 @@ export async function exportRangeToDocx({
   const doc = new Document({ numbering: BULLET_NUMBERING_CONFIG, sections: [{ children }] })
   return Packer.toBlob(doc)
 }
-
-// Triggers a browser "Save As" for an in-memory Blob — no server round
-// trip, matching "client-side .docx generation" (SPEC.md).
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}

@@ -102,12 +102,14 @@ end-to-end, including opening real exported files in Word. Next up: Phase
   Edge Function vs. a plain RLS-governed update.
 - "Change Password" (any signed-in user, in the header): change your own
   password, with current-password re-verification.
-- "Export" button: `.docx` for the current filtered date range — System
-  banner → Equipment sub-header (shows Running status) → one chronological
-  table per equipment combining maintenance records + operation events,
-  Swap events under both units, empty systems omitted entirely. The `docx`
-  library is lazy-loaded only when Export is clicked, not part of the main
-  bundle.
+- Export, in two formats (`.docx` and `.pdf`, via separate FABs) for the
+  current filtered date range — System banner → Equipment sub-header
+  (shows Running status) → one chronological table per equipment combining
+  maintenance records + operation events, Swap events under both units,
+  empty systems omitted entirely. Both the `docx` and `pdfmake` libraries
+  are lazy-loaded only when their Export button is clicked, and both are
+  excluded from the installed app's offline precache (see
+  PROJECT_STRUCTURE.md) — neither is part of the main bundle.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
 Not yet implemented: PWA polish (Phase 6) — see [PLAN.md](PLAN.md).
