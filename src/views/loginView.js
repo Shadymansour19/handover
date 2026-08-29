@@ -2,13 +2,13 @@ export function renderLoginView(container, { onSignIn }) {
   container.innerHTML = `
     <div class="login-screen">
       <h1>Handover</h1>
-      <p>Sign in with the email and password your admin gave you.</p>
+      <p>Sign in with the username (or email) and password your admin gave you.</p>
       <form id="login-form" class="login-form">
         <input
-          type="email"
-          id="login-email"
-          placeholder="you@company.com"
-          autocomplete="email"
+          type="text"
+          id="login-identifier"
+          placeholder="Username or email"
+          autocomplete="username"
           required
         />
         <input
@@ -29,7 +29,7 @@ export function renderLoginView(container, { onSignIn }) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
-    const email = container.querySelector('#login-email').value.trim()
+    const identifier = container.querySelector('#login-identifier').value.trim()
     const password = container.querySelector('#login-password').value
     const button = form.querySelector('button')
 
@@ -39,12 +39,12 @@ export function renderLoginView(container, { onSignIn }) {
     status.textContent = 'Signing in…'
 
     try {
-      await onSignIn(email, password)
+      await onSignIn(identifier, password)
       // On success, the auth state change listener in main.js re-renders
       // the app — nothing further to do here.
     } catch (err) {
       status.className = 'status status--error'
-      status.textContent = err.message || 'Sign-in failed. Check your email and password.'
+      status.textContent = err.message || 'Sign-in failed. Check your username/email and password.'
     } finally {
       button.disabled = false
     }
