@@ -1,0 +1,136 @@
+/* System/equipment grouping, the per-equipment records table, and the
+   row-level "⋮" action menu. */
+
+.system-section {
+  margin-bottom: 2rem;
+}
+
+.system-banner {
+  background: var(--surface-alt);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.equipment-block {
+  margin-bottom: 1.25rem;
+}
+
+.equipment-header {
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+
+.equipment-header .running {
+  color: var(--success);
+  font-weight: normal;
+}
+
+.records-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+/* Every equipment section renders its own separate <table>, so without a
+   shared, fixed column layout each one sizes its columns independently
+   based on its own content — headers/cells drift out of alignment from one
+   equipment block to the next. table-layout: fixed + these widths (same
+   percentages on every table, all the same overall width) keep every
+   table's columns — and their header labels — lined up with each other. */
+.col-start-date {
+  width: 15%;
+}
+
+.col-scope {
+  width: 45%;
+}
+
+.col-status {
+  width: 20%;
+}
+
+.col-actions {
+  width: 20%;
+}
+
+.records-table th,
+.records-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: break-word;
+}
+
+.records-table .no-records {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.row-deleted {
+  opacity: 0.6;
+}
+
+.deleted-tag {
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.actions {
+  text-align: right;
+}
+
+.row-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.row-menu__trigger {
+  padding: 0.3rem 0.7rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.row-menu__dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  flex-direction: column;
+  min-width: 150px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+/* `display: flex` must NOT sit on the bare .row-menu__dropdown rule above —
+   that has the same specificity as the UA stylesheet's `[hidden] { display:
+   none }` and, being defined later, would win and make [hidden] a no-op
+   (this is exactly what happened before: the menu couldn't be closed at
+   all). Gating it behind :not([hidden]) keeps [hidden] in control. */
+.row-menu__dropdown:not([hidden]) {
+  display: flex;
+}
+
+.row-menu__dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+}
+
+.row-menu__dropdown button svg {
+  flex-shrink: 0;
+}
+
+.row-menu__dropdown button:hover:not(:disabled) {
+  background: var(--surface);
+}

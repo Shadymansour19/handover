@@ -1,0 +1,100 @@
+/* Shared modal chrome (lib/modal.js), the create/edit record form, and the
+   read-only View modal's field list. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Record form (create/edit) */
+
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.record-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.record-form input,
+.record-form select,
+.record-form textarea {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.record-form textarea {
+  resize: vertical;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-weight: normal;
+  font-size: 0.8rem;
+}
+
+/* Record view (read-only) */
+
+.record-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.record-details dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.record-details dd {
+  margin: 0;
+}
+
+.bullet-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.empty-field {
+  margin: 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
