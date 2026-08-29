@@ -70,12 +70,16 @@ function noActivityRow() {
   return new TableRow({ children: [cell('No activity in this period', { columnSpan: 3 })] })
 }
 
+// Plain "• " text prefix rather than Word's `bullet: { level: 0 }` list
+// numbering — that built-in style always comes with Word's default list
+// indent/hanging-indent, which is exactly what's not wanted here; a literal
+// bullet character has no indentation baggage to override.
 function bulletParagraphs(text) {
   return (text ?? '')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text: line })] }))
+    .map((line) => new Paragraph({ children: [new TextRun({ text: `• ${line}` })] })) 
 }
 
 function labeledBulletSection(label, text) {
