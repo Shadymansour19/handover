@@ -6,7 +6,7 @@ import {
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
 import { fetchEquipmentStatuses } from '../data/operationEvents.js'
-import { fetchOwnProfile } from '../data/profiles.js'
+import { fetchOwnProfile, fetchProfileNames } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
@@ -25,7 +25,13 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   // Loaded data the delegated click handler below needs access to —
   // refreshed on every reload() call so handlers always see current state.
-  const state = { systems: [], records: [], profile: null, equipmentStatuses: new Map() }
+  const state = {
+    systems: [],
+    records: [],
+    profile: null,
+    equipmentStatuses: new Map(),
+    profileNames: new Map(),
+  }
 
   container.innerHTML = `
     <header class="app-header">
@@ -134,6 +140,7 @@ export async function renderMainView(container, { session, onSignOut }) {
         equipment,
         systems: state.systems,
         equipmentStatuses: state.equipmentStatuses,
+        profileNames: state.profileNames,
         userId: session.user.id,
         isAdmin: state.profile?.role === 'admin',
         onChanged: reload,
@@ -151,6 +158,7 @@ export async function renderMainView(container, { session, onSignOut }) {
           state.systems
             .flatMap((s) => s.equipment)
             .find((e) => e.id === record.equipment_id)?.name ?? '—',
+        createdByName: state.profileNames.get(record.created_by),
       })
     } else if (button.dataset.action === 'edit') {
       openMaintenanceRecordModal({
@@ -212,15 +220,17 @@ export async function renderMainView(container, { session, onSignOut }) {
       const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
       const isAdmin = profile.role === 'admin'
 
-      const [systems, records, equipmentStatuses] = await Promise.all([
+      const [systems, records, equipmentStatuses, profileNames] = await Promise.all([
         fetchSystemsWithEquipment(),
         fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
         fetchEquipmentStatuses(),
+        fetchProfileNames(),
       ])
       state.systems = systems
       state.records = records
       state.profile = profile
       state.equipmentStatuses = equipmentStatuses
+      state.profileNames = profileNames
 
       const currentUserEl = container.querySelector('#current-user')
       if (currentUserEl) {

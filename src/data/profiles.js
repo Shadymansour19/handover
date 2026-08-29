@@ -28,3 +28,15 @@ export async function fetchOwnProfile(userId) {
   if (error) throw error
   return data
 }
+
+// id -> "who created this record" display name, for every user — not just
+// the caller's own profile. profiles_select intentionally allows any
+// active user to read every profile row (not just admins; that's
+// list_users(), a different, admin-only RPC that also joins email) exactly
+// so records created by someone else can show a human name instead of a
+// bare uuid.
+export async function fetchProfileNames() {
+  const { data, error } = await supabase.from('profiles').select('id, username, full_name')
+  if (error) throw error
+  return new Map(data.map((p) => [p.id, p.full_name || p.username]))
+}

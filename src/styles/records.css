@@ -68,15 +68,19 @@
 /* History modal's table — different columns, same table-layout: fixed
    scheme, so it needs its own set rather than reusing the ones above. */
 .col-history-timestamp {
-  width: 25%;
+  width: 20%;
 }
 
 .col-history-action {
-  width: 25%;
+  width: 22%;
+}
+
+.col-history-by {
+  width: 14%;
 }
 
 .col-history-comment {
-  width: 30%;
+  width: 24%;
 }
 
 .col-history-actions {

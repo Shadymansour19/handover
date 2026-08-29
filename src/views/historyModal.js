@@ -15,7 +15,15 @@ import { openOperationEventModal } from './operationEventModal.js'
 // permission-gated the same way as the maintenance records table (own
 // event, or admin) — including the same admin view/restore/hard-delete of
 // soft-deleted events (20260830090000_admin_view_restore_operation_events.sql).
-export async function openHistoryModal({ equipment, systems, equipmentStatuses, userId, isAdmin, onChanged }) {
+export async function openHistoryModal({
+  equipment,
+  systems,
+  equipmentStatuses,
+  profileNames,
+  userId,
+  isAdmin,
+  onChanged,
+}) {
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
 
@@ -92,10 +100,13 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
           )
           .join('')
 
+        const createdByName = profileNames.get(event.created_by) ?? '—'
+
         return `
           <tr class="${isDeleted ? 'row-deleted' : ''}">
             <td>${escapeHTML(when)}</td>
             <td>${actionLabel}${isDeleted ? ' <span class="deleted-tag">(Deleted)</span>' : ''}</td>
+            <td>${escapeHTML(createdByName)}</td>
             <td>${escapeHTML(event.comment ?? '')}</td>
             <td class="actions">
               <div class="row-menu">
@@ -114,11 +125,12 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
         <colgroup>
           <col class="col-history-timestamp" />
           <col class="col-history-action" />
+          <col class="col-history-by" />
           <col class="col-history-comment" />
           <col class="col-history-actions" />
         </colgroup>
         <thead>
-          <tr><th>Timestamp</th><th>Action</th><th>Comment</th><th>Actions</th></tr>
+          <tr><th>Timestamp</th><th>Action</th><th>By</th><th>Comment</th><th>Actions</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>

@@ -3,7 +3,7 @@ import { renderBulletList } from '../lib/bullets.js'
 import { openModal } from '../lib/modal.js'
 import { formatDateDMY } from '../lib/dateFormat.js'
 
-export function openViewRecordModal(record, { systemName, equipmentName }) {
+export function openViewRecordModal(record, { systemName, equipmentName, createdByName }) {
   const statusLabel =
     record.work_status === 'Other' && record.work_status_other
       ? record.work_status_other
@@ -20,6 +20,7 @@ export function openViewRecordModal(record, { systemName, equipmentName }) {
       <dt>Status</dt><dd>${escapeHTML(statusLabel)}</dd>
       <dt>Detailed steps</dt><dd>${renderBulletList(record.detailed_steps)}</dd>
       <dt>Comment</dt><dd>${renderBulletList(record.comment)}</dd>
+      <dt>Created by</dt><dd>${escapeHTML(createdByName ?? '—')}</dd>
     </dl>
     <div class="modal-actions">
       <button type="button" id="view-close">Close</button>
