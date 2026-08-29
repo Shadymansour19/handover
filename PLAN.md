@@ -7,7 +7,7 @@ the goal — each phase should be a working, reviewable increment.
 
 ## Phase 0 — Planning (done)
 
-- [SPEC.md](SPEC.md), [schema.sql](schema.sql),
+- [SPEC.md](SPEC.md), [supabase/migrations/](supabase/migrations/),
   [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md), this file.
 
 ## Phase 1 — Minimal slice: auth + read-only display
@@ -23,10 +23,21 @@ Goal: prove the auth/RLS/data path end to end before any write logic exists.
       buttons present but disabled — Phase 2). Hide-when-empty rule applied
       for Workshop/Others/Scarab GTG.
 - [x] No writes, no operation events, no export yet — matches scope.
-- [ ] **Not yet done — requires the project owner**: create the actual
-      Supabase project, run `schema.sql`, disable public sign-ups, invite the
-      ~10 real users, populate `allowed_users`, and fill in `.env.local`. See
-      README.md "Setup". Code can't be end-to-end verified until this exists.
+- [x] Supabase project created (ref `pfkpvkaybylrdnfwycxn`), GitHub repo
+      linked via Supabase's GitHub integration (working directory `.`).
+      Schema restructured into `supabase/migrations/` + `supabase/config.toml`
+      so it deploys automatically on push instead of manual SQL-editor paste.
+- [x] Initial migration applied successfully (ran manually in the SQL
+      editor once the project's "read-only transaction" provisioning issue
+      cleared). The migration was then patched to guard every `create
+      policy` with a matching `drop policy if exists`, so it's safely
+      re-runnable if Supabase's GitHub integration deploys it again without
+      knowing it was already applied out of band — nothing has been pushed
+      to GitHub yet, so this was fixed before the pipeline's first run.
+- [ ] **In progress — requires the project owner**: disable public
+      sign-ups, invite the ~10 real users, populate `allowed_users`, and
+      fill in `.env.local`. See README.md "Setup". Code can't be end-to-end
+      verified until this is done.
 
 **Exit criteria**: a real user can log in via magic link and see live
 maintenance records grouped correctly; a non-allowlisted email cannot see

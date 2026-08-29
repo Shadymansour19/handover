@@ -51,7 +51,7 @@ read this before re-deriving requirements from scratch in a future session.
      accidentally re-enabled, and a single place to add/remove a user without
      touching Auth settings.
 - **Business rules enforced at the DB layer (not just client-side)**:
-  - `end_date` auto-fill/lock for `maintenance_records` (see schema.sql
+  - `end_date` auto-fill/lock for `maintenance_records` (see the migration
     trigger) — enforced server-side so a buggy client can't violate it.
   - Derived equipment run/stop status is a SQL **view**
     (`equipment_status`), not a stored column — computed from event history
@@ -132,11 +132,13 @@ every equipment row, even with zero records).
 
 ## Companion docs
 
-- [schema.sql](schema.sql) — proposed Postgres schema + RLS policies.
+- [supabase/migrations/](supabase/migrations/) — Postgres schema + RLS
+  policies (deployed via Supabase's GitHub integration).
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — frontend folder layout.
 - [PLAN.md](PLAN.md) — phased build plan, Phase 1 = minimal slice (auth +
   read-only display grouped by system/equipment).
 
-None of this has been implemented yet — these are planning/reference
-documents only, written ahead of time so future sessions don't need to
-re-ask the same questions.
+Phase 1 (auth + read-only display) is implemented — see PLAN.md for current
+status. This file stays the durable source of truth for requirements and
+decisions regardless of implementation progress, so future sessions don't
+need to re-ask the same questions.

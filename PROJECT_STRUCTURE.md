@@ -58,7 +58,8 @@ handover/
   a network call.
 - **Env vars**: Vite exposes `import.meta.env.VITE_*` — so `.env.local` keys
   should be `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. The anon key is
-  safe to ship client-side; it relies entirely on RLS (schema.sql) for
-  protection, which is why the allowlist enforcement there matters.
+  safe to ship client-side; it relies entirely on RLS (see
+  `supabase/migrations/`) for protection, which is why the allowlist
+  enforcement there matters.
 - **Deploy target** (Vercel or Netlify, either is a static Vite build):
   decide at Phase 1 setup time, not before — doesn't affect any code above.

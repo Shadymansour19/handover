@@ -3,3 +3,5 @@ dist/
 dev-dist/
 .env.local
 *.local
+supabase/.temp/
+supabase/.branches/

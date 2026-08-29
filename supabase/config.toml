@@ -1,0 +1,12 @@
+# Minimal config for this project. We deploy exclusively via Supabase's
+# GitHub integration (migrations in supabase/migrations/ auto-apply on push)
+# and don't run `supabase start` for local Docker-based development, so the
+# full local-dev template (`supabase init`'s ~400-line default, covering
+# local API/db/auth/storage ports etc.) is intentionally omitted here. If
+# local dev via the Supabase CLI is wanted later, running
+# `npx supabase init` will regenerate that full template.
+
+project_id = "Handover"
+
+[db.migrations]
+enabled = true
