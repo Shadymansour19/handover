@@ -18,7 +18,7 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
 
-  const { modalEl, close } = openModal(
+  const { modalEl, close, onClose } = openModal(
     `
     <h2>History — ${escapeHTML(equipment.name)}</h2>
     ${
@@ -149,6 +149,18 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
     })
   }
 
+  // Closes an open menu on any click elsewhere in the modal (the title,
+  // the "Show deleted" checkbox, etc. — anything outside `content`) or on
+  // the page behind it. Registered via onClose() so it's actually removed
+  // when the modal closes, however that happens (Close button, Escape, or
+  // clicking the overlay) — otherwise every History open would leave
+  // another one of these listening on `document` forever.
+  function handleOutsideClick(event) {
+    if (!content.contains(event.target)) closeAllMenus()
+  }
+  document.addEventListener('click', handleOutsideClick)
+  onClose(() => document.removeEventListener('click', handleOutsideClick))
+
   // Attached once — content's innerHTML gets replaced wholesale on every
   // load(), but content itself (and this listener) persists for the life
   // of the modal.
@@ -162,9 +174,13 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
       return
     }
 
+    // Any other click within content closes an open menu — see the
+    // matching comment in mainView.js for why this must come before the
+    // `!button` early-return below.
+    closeAllMenus()
+
     const button = clickEvent.target.closest('button[data-action]')
     if (!button) return
-    closeAllMenus()
 
     const record = currentEvents.find((e) => e.id === button.dataset.eventId)
     if (!record) return

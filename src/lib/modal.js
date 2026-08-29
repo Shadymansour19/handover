@@ -10,7 +10,16 @@ export function openModal(innerHTML, { wide = false } = {}) {
 
   const modalEl = overlay.querySelector('.modal')
 
+  // A modal can close three different ways (Close/Cancel button, Escape,
+  // clicking the overlay backdrop) — all of them funnel through this one
+  // close(), so anything registered via onClose() below is guaranteed to
+  // run exactly once no matter which path was taken. historyModal.js needs
+  // this for its own document-level "outside click" listener, which would
+  // otherwise leak (re-added, never removed) every time History is opened.
+  const cleanupFns = []
+
   function close() {
+    cleanupFns.forEach((fn) => fn())
     overlay.remove()
     document.removeEventListener('keydown', onKeydown)
   }
@@ -24,5 +33,9 @@ export function openModal(innerHTML, { wide = false } = {}) {
     if (event.target === overlay) close()
   })
 
-  return { modalEl, close }
+  function onClose(fn) {
+    cleanupFns.push(fn)
+  }
+
+  return { modalEl, close, onClose }
 }

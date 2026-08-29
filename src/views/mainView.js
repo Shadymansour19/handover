@@ -103,9 +103,15 @@ export async function renderMainView(container, { session, onSignOut }) {
       return
     }
 
+    // Any other click within the container closes an open menu — this must
+    // run before the `!button` early-return below, otherwise a click on a
+    // non-button part of the table (a cell, the equipment name, empty row
+    // space) leaves the menu open since neither this handler nor the
+    // document-level "outside click" one below would ever touch it.
+    closeAllMenus()
+
     const button = event.target.closest('button[data-action]')
     if (!button) return
-    closeAllMenus()
 
     if (button.dataset.action === 'history') {
       const equipment = state.systems
