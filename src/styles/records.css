@@ -49,15 +49,15 @@
    equipment block to the next. table-layout: fixed + these widths (same
    percentages on every table, all the same overall width) keep every
    table's columns — and their header labels — lined up with each other. */
-.col-date {
+.col-start-date {
   width: 15%;
 }
 
-.col-detail {
+.col-scope {
   width: 45%;
 }
 
-.col-note {
+.col-status {
   width: 20%;
 }
 
@@ -100,11 +100,31 @@
   opacity: 0.6;
 }
 
-/* Maintenance records and operation events share one combined,
-   chronological table per equipment (Phase 4) — this is the only visual
-   cue telling them apart, since they otherwise reuse the same columns. */
-.row-operation {
-  background: rgba(56, 189, 248, 0.06);
+/* Manage Users modal's table — email is the widest realistic field
+   (longer than usernames/roles), so it gets noticeably more room than a
+   naive even split. */
+.col-users-username {
+  width: 14%;
+}
+
+.col-users-fullname {
+  width: 16%;
+}
+
+.col-users-email {
+  width: 32%;
+}
+
+.col-users-role {
+  width: 10%;
+}
+
+.col-users-status {
+  width: 10%;
+}
+
+.col-users-actions {
+  width: 18%;
 }
 
 .deleted-tag {

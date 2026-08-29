@@ -69,7 +69,15 @@ export async function openManageUsersModal({ currentUserId }) {
       .join('')
 
     return `
-      <table class="records-table">
+      <table class="records-table users-table">
+        <colgroup>
+          <col class="col-users-username" />
+          <col class="col-users-fullname" />
+          <col class="col-users-email" />
+          <col class="col-users-role" />
+          <col class="col-users-status" />
+          <col class="col-users-actions" />
+        </colgroup>
         <thead>
           <tr><th>Username</th><th>Full name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
         </thead>

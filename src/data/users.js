@@ -24,26 +24,40 @@ export async function updateProfile(id, fields) {
   return data
 }
 
+// supabase-js only sets a generic "Edge Function returned a non-2xx status
+// code" on error.message for an HTTP-level failure — the actual reason (the
+// JSON body admin-manage-users/index.ts sends back) is only reachable via
+// error.context, the raw Response object, which it leaves to the caller to
+// read. Without this, every failure looks identical and unhelpful.
+async function invokeAdminUsersFunction(body) {
+  const { data, error } = await supabase.functions.invoke('admin-manage-users', { body })
+
+  if (error) {
+    let message = error.message
+    try {
+      const errorBody = await error.context?.json?.()
+      if (errorBody?.error) message = errorBody.error
+    } catch {
+      // Response body wasn't JSON (or already consumed) — fall back to the
+      // generic message rather than letting this throw instead.
+    }
+    throw new Error(message)
+  }
+
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
 // Both of these call the admin-manage-users Edge Function — see that
 // file's header comment for why they can't be plain client calls
 // (creating an account / setting someone else's password both require the
 // service_role key).
 export async function createUser({ email, password, username, role, fullName }) {
-  const { data, error } = await supabase.functions.invoke('admin-manage-users', {
-    body: { action: 'create', email, password, username, role, fullName },
-  })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+  return invokeAdminUsersFunction({ action: 'create', email, password, username, role, fullName })
 }
 
 export async function setUserPassword(userId, password) {
-  const { data, error } = await supabase.functions.invoke('admin-manage-users', {
-    body: { action: 'set-password', userId, password },
-  })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+  return invokeAdminUsersFunction({ action: 'set-password', userId, password })
 }
 
 // A user changing their OWN password — no service_role/Edge Function
