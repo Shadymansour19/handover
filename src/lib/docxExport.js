@@ -15,6 +15,7 @@ import {
   ShadingType,
   AlignmentType,
   TableLayoutType,
+  LevelFormat,
 } from 'docx'
 import { buildEquipmentTimeline } from './combinedTimeline.js'
 import { formatDateDMY, formatDateTimeDMY } from './dateFormat.js'
@@ -38,6 +39,35 @@ const COLUMN_WIDTHS = [20, 60, 20]
 // 12240 total - 1440*2 margins = 9360 DXA of usable width.
 const USABLE_WIDTH_DXA = 9360
 const COLUMN_WIDTHS_DXA = COLUMN_WIDTHS.map((pct) => Math.round((pct / 100) * USABLE_WIDTH_DXA))
+
+// A real Word bullet list (not a plain "• " text prefix — that has no
+// hanging indent, so a wrapped multi-line item's continuation would sit
+// flush left under the bullet instead of aligned under the text) but with
+// a small indent instead of Word's default list style's much larger one.
+// left/hanging equal means the bullet sits at the paragraph's natural left
+// edge and only wrapped continuation lines are pushed in — by this amount.
+const BULLET_NUMBERING_REFERENCE = 'handover-bullets'
+const BULLET_INDENT_DXA = 200 // ~0.14in — deliberately minimal
+const BULLET_NUMBERING_CONFIG = {
+  config: [
+    {
+      reference: BULLET_NUMBERING_REFERENCE,
+      levels: [
+        {
+          level: 0,
+          format: LevelFormat.BULLET,
+          text: '•',
+          alignment: AlignmentType.LEFT,
+          style: {
+            paragraph: {
+              indent: { left: BULLET_INDENT_DXA, hanging: BULLET_INDENT_DXA },
+            },
+          },
+        },
+      ],
+    },
+  ],
+}
 
 function cell(content, { header = false, width, columnSpan } = {}) {
   const children = Array.isArray(content)
@@ -70,16 +100,23 @@ function noActivityRow() {
   return new TableRow({ children: [cell('No activity in this period', { columnSpan: 3 })] })
 }
 
-// Plain "• " text prefix rather than Word's `bullet: { level: 0 }` list
-// numbering — that built-in style always comes with Word's default list
-// indent/hanging-indent, which is exactly what's not wanted here; a literal
-// bullet character has no indentation baggage to override.
+// Real Word list numbering (BULLET_NUMBERING_CONFIG, registered on the
+// Document below) rather than Word's own default bullet style (too much
+// indent) or a plain "• " text prefix (no hanging indent — a wrapped
+// multi-line item's continuation would sit flush left under the bullet
+// instead of aligned under the text).
 function bulletParagraphs(text) {
   return (text ?? '')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => new Paragraph({ children: [new TextRun({ text: `• ${line}` })] })) 
+    .map(
+      (line) =>
+        new Paragraph({
+          numbering: { reference: BULLET_NUMBERING_REFERENCE, level: 0 },
+          children: [new TextRun({ text: line })],
+        })
+    )
 }
 
 function labeledBulletSection(label, text) {
@@ -258,7 +295,7 @@ export async function exportRangeToDocx({
     }
   }
 
-  const doc = new Document({ sections: [{ children }] })
+  const doc = new Document({ numbering: BULLET_NUMBERING_CONFIG, sections: [{ children }] })
   return Packer.toBlob(doc)
 }
 
