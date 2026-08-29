@@ -54,7 +54,7 @@
 }
 
 .col-scope {
-  width: 57%;
+  width: 60%;
 }
 
 .col-status {
@@ -63,12 +63,12 @@
 
 /* Just the row's ⋮ menu button now — no header label above it (removed
    along with .col-users-actions's below) — so this only needs to be wide
-   enough for that one button (kept a bit above the absolute minimum since
-   table-layout: fixed cells don't grow to fit an overflowing button — a
-   real risk on narrow phone screens); the width freed up went to
-   col-scope. */
+   enough for that one button. Trimmed to the button's actual footprint
+   (see .row-menu__trigger's own reduced padding below) rather than an
+   arbitrary round percentage, since table-layout: fixed cells don't grow
+   to fit an overflowing button; the width freed up went to col-scope. */
 .col-actions {
-  width: 8%;
+  width: 5%;
 }
 
 /* History modal's table — different columns, same table-layout: fixed
@@ -122,7 +122,7 @@
 }
 
 .col-users-email {
-  width: 36%;
+  width: 39%;
 }
 
 .col-users-role {
@@ -135,11 +135,12 @@
 
 /* Just the row's ⋮ menu button now — no header label above it (removed
    along with .col-actions's above) — so this only needs to be wide enough
-   for that one button (kept a bit above the absolute minimum since
-   table-layout: fixed cells don't grow to fit an overflowing button); the
-   width freed up went to fullname/email. */
+   for that one button. Trimmed to the button's actual footprint (see
+   .row-menu__trigger's own reduced padding below) rather than an arbitrary
+   round percentage, since table-layout: fixed cells don't grow to fit an
+   overflowing button; the width freed up went to email. */
 .col-users-actions {
-  width: 8%;
+  width: 5%;
 }
 
 .deleted-tag {
@@ -150,6 +151,11 @@
 
 .actions {
   text-align: right;
+  /* Cuts into the general td padding (0.5rem both sides above) since the
+     column itself is now trimmed to the ⋮ button's footprint — full
+     padding on both sides would eat most of that width back up. */
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .row-menu {
@@ -158,7 +164,11 @@
 }
 
 .row-menu__trigger {
-  padding: 0.3rem 0.7rem;
+  /* Trimmed from 0.7rem horizontal — the actions column itself was
+     narrowed right down to this button's footprint (col-actions/
+     col-users-actions above), so the button needs to be as slim as it can
+     stay comfortably tappable. */
+  padding: 0.3rem 0.4rem;
   font-size: 1.1rem;
   line-height: 1;
 }
