@@ -5,37 +5,25 @@ import {
   restoreMaintenanceRecord,
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
-import {
-  fetchEquipmentStatuses,
-  fetchOperationEvents,
-  softDeleteOperationEvent,
-  restoreOperationEvent,
-  hardDeleteOperationEvent,
-} from '../data/operationEvents.js'
+import { fetchEquipmentStatuses } from '../data/operationEvents.js'
 import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
-import { openOperationEventModal } from './operationEventModal.js'
 import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
 import { openHistoryModal } from './historyModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 
-// Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 4
-// (unified date-range filter) slice. Export lands in Phase 5 (see PLAN.md).
+// Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) slice. Export
+// and the unified date-range filter across both record types land in
+// Phase 4/5 (see PLAN.md).
 export async function renderMainView(container, { session, onSignOut }) {
   const range = getDefaultRange()
 
   // Loaded data the delegated click handler below needs access to —
   // refreshed on every reload() call so handlers always see current state.
-  const state = {
-    systems: [],
-    records: [],
-    operationEvents: [],
-    profile: null,
-    equipmentStatuses: new Map(),
-  }
+  const state = { systems: [], records: [], profile: null, equipmentStatuses: new Map() }
 
   container.innerHTML = `
     <header class="app-header">
@@ -141,13 +129,6 @@ export async function renderMainView(container, { session, onSignOut }) {
       return
     }
 
-    if (button.dataset.recordType === 'operation') {
-      const event = state.operationEvents.find((e) => e.id === button.dataset.recordId)
-      if (!event) return
-      handleOperationEventAction(button.dataset.action, event)
-      return
-    }
-
     const record = state.records.find((r) => r.id === button.dataset.recordId)
     if (!record) return
 
@@ -174,42 +155,6 @@ export async function renderMainView(container, { session, onSignOut }) {
       handleHardDelete(record)
     }
   })
-
-  function handleOperationEventAction(action, event) {
-    if (action === 'edit') {
-      openOperationEventModal({
-        mode: 'edit',
-        record: event,
-        systems: state.systems,
-        equipmentStatuses: state.equipmentStatuses,
-        onSaved: reload,
-      })
-      return
-    }
-
-    const confirmations = {
-      delete: 'Delete this operation event? This can be undone by an admin only.',
-      restore: 'Restore this operation event?',
-      'hard-delete':
-        'Permanently delete this operation event? This cannot be undone — there is no restore after this.',
-    }
-    const rpcs = {
-      delete: softDeleteOperationEvent,
-      restore: restoreOperationEvent,
-      'hard-delete': hardDeleteOperationEvent,
-    }
-    const errorMessages = {
-      delete: 'Failed to delete event.',
-      restore: 'Failed to restore event.',
-      'hard-delete': 'Failed to permanently delete event.',
-    }
-
-    if (!confirmations[action] || !window.confirm(confirmations[action])) return
-
-    rpcs[action](event.id)
-      .then(reload)
-      .catch((err) => window.alert(err.message || errorMessages[action]))
-  }
 
   async function handleRestore(record) {
     if (!window.confirm(`Restore the "${record.work_scope}" record?`)) return
@@ -255,15 +200,13 @@ export async function renderMainView(container, { session, onSignOut }) {
       const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
       const isAdmin = profile.role === 'admin'
 
-      const [systems, records, operationEvents, equipmentStatuses] = await Promise.all([
+      const [systems, records, equipmentStatuses] = await Promise.all([
         fetchSystemsWithEquipment(),
         fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
-        fetchOperationEvents({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
         fetchEquipmentStatuses(),
       ])
       state.systems = systems
       state.records = records
-      state.operationEvents = operationEvents
       state.profile = profile
       state.equipmentStatuses = equipmentStatuses
 
@@ -277,7 +220,6 @@ export async function renderMainView(container, { session, onSignOut }) {
       recordsContainer.innerHTML = renderSystemsHTML(
         systems,
         records,
-        operationEvents,
         { userId: session.user.id, isAdmin },
         equipmentStatuses
       )

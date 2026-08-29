@@ -1,6 +1,7 @@
 import { escapeHTML } from '../lib/html.js'
 import { renderBulletList } from '../lib/bullets.js'
 import { openModal } from '../lib/modal.js'
+import { formatDateDMY } from '../lib/dateFormat.js'
 
 export function openViewRecordModal(record, { systemName, equipmentName }) {
   const statusLabel =
@@ -13,8 +14,8 @@ export function openViewRecordModal(record, { systemName, equipmentName }) {
     <dl class="record-details">
       <dt>System</dt><dd>${escapeHTML(systemName)}</dd>
       <dt>Equipment</dt><dd>${escapeHTML(equipmentName)}</dd>
-      <dt>Start date</dt><dd>${escapeHTML(record.start_date)}</dd>
-      <dt>End date</dt><dd>${escapeHTML(record.end_date ?? '—')}</dd>
+      <dt>Start date</dt><dd>${escapeHTML(formatDateDMY(record.start_date))}</dd>
+      <dt>End date</dt><dd>${escapeHTML(record.end_date ? formatDateDMY(record.end_date) : '—')}</dd>
       <dt>Work scope</dt><dd>${escapeHTML(record.work_scope)}</dd>
       <dt>Status</dt><dd>${escapeHTML(statusLabel)}</dd>
       <dt>Detailed steps</dt><dd>${renderBulletList(record.detailed_steps)}</dd>

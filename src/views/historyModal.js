@@ -7,6 +7,7 @@ import {
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { openModal } from '../lib/modal.js'
+import { formatDateTimeDMY } from '../lib/dateFormat.js'
 import { openOperationEventModal } from './operationEventModal.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
@@ -67,7 +68,7 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
           ? ''
           : 'disabled title="Only the creator or an admin can edit/delete this"'
 
-        const when = new Date(event.event_timestamp).toLocaleString()
+        const when = formatDateTimeDMY(event.event_timestamp)
 
         // Deleted events only ever reach here for an admin (RLS hides them
         // from everyone else) — same shape as the maintenance table's
