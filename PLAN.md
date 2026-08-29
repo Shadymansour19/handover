@@ -1,9 +1,9 @@
 # Handover — phased build plan
 
-STATUS: planning only — nothing below has been built yet.
-
 Full feature scope is in [SPEC.md](SPEC.md). Building it in one pass isn't
-the goal — each phase should be a working, reviewable increment.
+the goal — each phase should be a working, reviewable increment. Current
+status: Phase 1 is built; see its checklist below for what's still pending
+on the Supabase-setup side.
 
 ## Phase 0 — Planning (done)
 
@@ -16,12 +16,16 @@ Goal: prove the auth/RLS/data path end to end before any write logic exists.
 
 - [x] Vite scaffold + `vite-plugin-pwa` (manifest, generateSW, placeholder
       icons). `npm install` / `npm run build` both verified working.
-- [x] `auth.js`: magic-link request form, session listener, sign-out.
-- [x] `mainView.js`: fetch `systems` + `equipment` (ordered), fetch
-      `maintenance_records` for a "last 7 days" default (adjustable) range,
-      group by System → Equipment, render a read-only table (View/Edit/Delete
-      buttons present but disabled — Phase 2). Hide-when-empty rule applied
-      for Workshop/Others/Scarab GTG.
+- [x] `auth.js`: email + password sign-in (`signInWithPassword`), session
+      listener, sign-out. Switched from the original magic-link plan on
+      2026-08-29 — see SPEC.md "auth pivot" — before any real users existed,
+      so no migration/user-facing breakage from the switch.
+- [x] `mainView.js`: shows the signed-in user's `username` + role (from the
+      new `profiles` table), fetches `systems` + `equipment` (ordered),
+      fetches `maintenance_records` for a "last 7 days" default (adjustable)
+      range, groups by System → Equipment, renders a read-only table
+      (View/Edit/Delete buttons present but disabled — Phase 2).
+      Hide-when-empty rule applied for Workshop/Others/Scarab GTG.
 - [x] No writes, no operation events, no export yet — matches scope.
 - [x] Supabase project created (ref `pfkpvkaybylrdnfwycxn`), GitHub repo
       linked via Supabase's GitHub integration (working directory `.`).
@@ -34,15 +38,21 @@ Goal: prove the auth/RLS/data path end to end before any write logic exists.
       re-runnable if Supabase's GitHub integration deploys it again without
       knowing it was already applied out of band — nothing has been pushed
       to GitHub yet, so this was fixed before the pipeline's first run.
-- [ ] **In progress — requires the project owner**: disable public
-      sign-ups, invite the ~10 real users, populate `allowed_users`, and
+- [x] `profiles` + `role`/`is_active` + admin RLS override added in a new
+      migration (`20260830000000_profiles_and_roles.sql`), replacing the
+      unused `allowed_users` table (it was dropped — never populated).
+- [ ] **In progress — requires the project owner**: push both migrations to
+      GitHub (neither has been pushed yet — the first was run manually,
+      the second not yet applied at all), keep public sign-ups disabled,
+      create the ~10 real users + your own admin account via Authentication
+      > Users > "Add user", promote your account to `role = 'admin'`, and
       fill in `.env.local`. See README.md "Setup". Code can't be end-to-end
       verified until this is done.
 
-**Exit criteria**: a real user can log in via magic link and see live
-maintenance records grouped correctly; a non-allowlisted email cannot see
-any data even if they somehow get a session. Blocked on the Supabase setup
-step above.
+**Exit criteria**: the admin and a normal user can each log in with
+email/password and see live maintenance records grouped correctly; the
+admin sees the "(admin)" tag; nobody without an admin-created account can
+sign in at all (no self-serve path exists).
 
 ## Phase 2 — Maintenance CRUD
 

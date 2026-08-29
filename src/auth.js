@@ -13,15 +13,11 @@ export function onAuthStateChange(callback) {
   return () => subscription.unsubscribe()
 }
 
-// Magic-link sign-in. Whether the email is actually allowlisted is enforced
-// server-side (Auth sign-ups disabled + allowed_users/RLS, see schema.sql) —
-// this call succeeds either way; a non-allowlisted user just gets no data
-// once (if ever) they sign in.
-export async function requestMagicLink(email) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  })
+// Email + password sign-in (see SPEC.md "2026-08-29 — auth pivot"). Accounts
+// are admin-created only (public sign-up disabled) — there is no sign-up
+// call here on purpose.
+export async function signIn(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
 }
 

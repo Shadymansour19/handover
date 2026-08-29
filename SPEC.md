@@ -9,7 +9,9 @@ read this before re-deriving requirements from scratch in a future session.
 - **Frontend**: Vanilla JS + Vite, built as a PWA (installable on Android/iOS,
   app-shell cached for offline launch — see "Offline scope" below).
 - **Backend**: Supabase (Postgres + Auth + RLS).
-- **Auth**: Supabase Auth, magic link, restricted to an allowlist of ~10 known users.
+- **Auth**: Supabase Auth, email + password (see 2026-08-29 decisions below
+  — this superseded the original magic-link plan), restricted to accounts
+  the admin creates directly (no public sign-up).
 - **Export**: Client-side `.docx` generation via the `docx` npm library. No PDF.
 - **Hosting**: static site on Vercel or Netlify (free tier).
 
@@ -21,6 +23,21 @@ read this before re-deriving requirements from scratch in a future session.
 | Offline scope | **App-shell caching only** | Service worker caches static assets so the app *launches* offline and shows last-loaded data. Reads/writes require connectivity. No IndexedDB write queue, no sync/conflict logic. |
 | Edit/delete permissions | **Own records only** | RLS restricts UPDATE to rows where `created_by = auth.uid()`. Real DELETE is disabled entirely in favor of soft delete (see below), and the soft-delete "delete" action is implemented as an UPDATE, so the same own-records-only rule applies to it. **Known limitation**: one user cannot fix another user's mistake in the UI. If that becomes a problem, add an admin-override path later (e.g. a `security definer` RPC) rather than loosening RLS broadly. |
 | Delete behavior | **Soft delete** | Rows get `deleted_at` set instead of being removed. Hidden from all client reads via RLS SELECT policy (`deleted_at IS NULL`). Recoverable only via direct DB/service-role access. Real `DELETE` is not granted to authenticated users. |
+
+## Decisions made (2026-08-29) — auth pivot
+
+The magic-link plan above was replaced before any real users were onboarded
+(nobody had been invited yet). Reason: the ~10 users are facility workers
+sharing devices/terminals, not each reliably checking their own email inbox
+for a link — handing out an email + password they can type is more workable
+day to day than a magic-link flow.
+
+| Question | Decision | Why / implication |
+| --- | --- | --- |
+| Sign-in method | **Supabase Auth, email + password** (not magic link) | Login is by **email**, not a separate username — `username` is a display-only field (see `profiles` below). Still 100% Supabase Auth under the hood, so RLS's `auth.uid()`/`auth.jwt()` keep working unchanged; no custom password storage was built (that would be a real security problem and would break every existing RLS policy, which depend on a real Supabase Auth session). |
+| Account creation | **Admin creates every account directly** | No public/self-serve sign-up (kept disabled in Auth settings). Admin uses Supabase Dashboard → Authentication → Users → "Add user" (sets email + password there), then sets that user's `username`/`role` in the new `profiles` table. No in-app "create user" UI in Phase 1 — see PLAN.md if that's wanted later (would need a `service_role`-backed Edge Function, since the admin API key can never ship to the browser). |
+| Roles | **`profiles.role`: `'user'` or `'admin'`, admin has real extra power now** | One `public.profiles` row per `auth.users` row (`username`, `role`, `is_active`), auto-created by a trigger on `auth.users` insert (default `role = 'user'`) so the admin only has to flip the one real admin account's role afterward. Admin can edit/delete **any** record, not just their own — RLS on `maintenance_records`/`operation_events` UPDATE now allows `created_by = auth.uid() OR is_admin()`. Regular users keep the existing own-records-only rule. |
+| Allowlist mechanism | **Replaced by `profiles` row existence** | The original `allowed_users` email table is dropped — with public sign-up disabled and every account admin-created, an existing `auth.users` row *is* the allowlist. `is_allowed_user()` now checks for an active `profiles` row (`profiles.is_active`) instead of an email list; kept as the same function name so no other RLS policy had to change. `is_active` also gives a cheap way to revoke a departed worker's access later without deleting their auth account. |
 
 ## Other assumptions (not asked, low-risk defaults — revisit if wrong)
 
@@ -42,14 +59,11 @@ read this before re-deriving requirements from scratch in a future session.
   instead. This also lets `systems` carry per-system flags
   (`operation_tracked`, `hide_when_empty`) instead of hardcoding system names
   in application logic.
-- **Allowlist enforcement is two-layered**:
-  1. In Supabase Auth settings, disable public sign-ups; pre-create the ~10
-     users via the dashboard (Invite User) so magic link only ever works for
-     existing accounts.
-  2. An `allowed_users` table + `is_allowed_user()` SQL function, checked in
-     every RLS policy — defense in depth in case sign-ups are ever
-     accidentally re-enabled, and a single place to add/remove a user without
-     touching Auth settings.
+- **Allowlist enforcement (superseded 2026-08-29, see decisions above)**: now
+  two-layered — disable public sign-up in Auth settings (so nobody can
+  self-register even by calling the client SDK directly), plus
+  `is_allowed_user()` checking `profiles.is_active` — checked in every RLS
+  policy, same as before, just backed by `profiles` instead of an email list.
 - **Business rules enforced at the DB layer (not just client-side)**:
   - `end_date` auto-fill/lock for `maintenance_records` (see the migration
     trigger) — enforced server-side so a buggy client can't violate it.
@@ -128,7 +142,9 @@ every equipment row, even with zero records).
   chronological table of maintenance records + operation events, Swap events
   appear under **both** equipment involved. Systems with zero activity in the
   period are omitted entirely from the export.
-- Auth: magic link login, allowlist-only via RLS.
+- Auth: email + password login (originally spec'd as magic link — see
+  "2026-08-29 — auth pivot" above), admin-created accounts only, enforced
+  via RLS.
 
 ## Companion docs
 

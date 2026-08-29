@@ -26,15 +26,20 @@ migrating from Google Apps Script to Supabase + a static PWA.
    project can briefly reject writes with a
    "cannot execute ... in a read-only transaction" error while it finishes
    provisioning — wait for the project status to go green and retry.)
-3. **Auth settings** (Authentication > Settings): disable public sign-ups.
-4. **Invite users** (Authentication > Users): "Invite user" for each of the
-   ~10 real users — this pre-creates their accounts so magic link works
-   only for them.
-5. **Populate the allowlist**: in the SQL editor,
-   `insert into public.allowed_users (email) values ('a@b.com'), (...);`
-   for the same emails (lowercase). (Not part of the migration on purpose —
-   see [supabase/migrations/](supabase/migrations/); it's real user data,
-   not schema.)
+3. **Auth settings** (Authentication > Settings): keep public sign-ups
+   disabled — accounts are admin-created only (see SPEC.md "auth pivot").
+4. **Create accounts** (Authentication > Users > "Add user"): one for
+   yourself (the admin) and one for each of the ~10 real users, each with an
+   email + password you hand out directly. A trigger auto-creates each
+   user's `profiles` row (`username` guessed from their email, `role =
+   'user'`) — you don't need to insert that by hand.
+5. **Promote yourself to admin**: in the SQL editor,
+   `update public.profiles set role = 'admin', username = 'yourname' where
+   id = (select id from auth.users where email = 'you@example.com');`
+   (Not part of the migration on purpose — see
+   [supabase/migrations/](supabase/migrations/); it's real user data, not
+   schema.) Optionally fix up the other users' auto-guessed usernames the
+   same way.
 6. **Configure the frontend**: copy `.env.local.example` to `.env.local` and
    fill in your project's URL + anon key (Project Settings > API).
 7. **Install and run**:
@@ -46,9 +51,10 @@ migrating from Google Apps Script to Supabase + a static PWA.
 
 ## What's implemented (Phase 1)
 
-- Magic-link login screen, session handling, sign-out.
-- Main view: fetches `systems`/`equipment` and `maintenance_records` (default
-  date range = last 7 days, adjustable), groups by System → Equipment, and
+- Email + password login screen, session handling, sign-out.
+- Main view: shows the signed-in user's username + role (admin/user),
+  fetches `systems`/`equipment` and `maintenance_records` (default date
+  range = last 7 days, adjustable), groups by System → Equipment, and
   applies the hide-when-empty rule for Workshop/Others/Scarab GTG.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 

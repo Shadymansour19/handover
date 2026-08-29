@@ -1,5 +1,6 @@
 import { fetchSystemsWithEquipment } from '../data/systemsEquipment.js'
 import { fetchMaintenanceRecords } from '../data/maintenanceRecords.js'
+import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 
 // Phase 1 slice: auth + read-only grouped display only. View/Edit/Delete,
@@ -12,7 +13,7 @@ export async function renderMainView(container, { session, onSignOut }) {
     <header class="app-header">
       <h1>Handover</h1>
       <div class="app-header__user">
-        <span>${escapeHTML(session.user.email)}</span>
+        <span id="current-user">${escapeHTML(session.user.email)}</span>
         <button id="sign-out" type="button">Sign out</button>
       </div>
     </header>
@@ -35,6 +36,19 @@ export async function renderMainView(container, { session, onSignOut }) {
     const to = container.querySelector('#filter-to').value
     loadAndRenderRecords(container, { from, to })
   })
+
+  // Swap the header's email placeholder for username + role once the
+  // profile loads — doesn't block the records below from loading.
+  fetchOwnProfile(session.user.id)
+    .then((profile) => {
+      const el = container.querySelector('#current-user')
+      if (!el) return
+      const roleTag = profile.role === 'admin' ? ' (admin)' : ''
+      el.textContent = `${profile.username}${roleTag}`
+    })
+    .catch(() => {
+      // Header keeps showing the email — not worth a visible error for this.
+    })
 
   await loadAndRenderRecords(container, range)
 }

@@ -21,7 +21,7 @@ handover/
 └── src/
     ├── main.js                 # bootstrap: init Supabase client, check session, mount a view
     ├── supabaseClient.js       # single createClient() instance, imported everywhere
-    ├── auth.js                 # magic-link sign-in, session listener, sign-out
+    ├── auth.js                 # email+password sign-in, session listener, sign-out
     │
     ├── styles/
     │   └── main.css            # single global stylesheet to start; split later if it grows
@@ -36,6 +36,7 @@ handover/
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js
     │   ├── operationEvents.js
+    │   ├── profiles.js         # own username/role, for the header (Phase 1)
     │   └── systemsEquipment.js
     │
     └── views/                  # each view is a function that renders into a container element

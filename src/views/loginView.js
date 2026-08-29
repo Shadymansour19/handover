@@ -1,8 +1,8 @@
-export function renderLoginView(container, { onRequestMagicLink }) {
+export function renderLoginView(container, { onSignIn }) {
   container.innerHTML = `
     <div class="login-screen">
       <h1>Handover</h1>
-      <p>Sign in with a magic link sent to your work email.</p>
+      <p>Sign in with the email and password your admin gave you.</p>
       <form id="login-form" class="login-form">
         <input
           type="email"
@@ -11,7 +11,14 @@ export function renderLoginView(container, { onRequestMagicLink }) {
           autocomplete="email"
           required
         />
-        <button type="submit">Send magic link</button>
+        <input
+          type="password"
+          id="login-password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        />
+        <button type="submit">Sign in</button>
       </form>
       <p id="login-status" class="status" hidden></p>
     </div>
@@ -23,20 +30,21 @@ export function renderLoginView(container, { onRequestMagicLink }) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     const email = container.querySelector('#login-email').value.trim()
+    const password = container.querySelector('#login-password').value
     const button = form.querySelector('button')
 
     button.disabled = true
     status.hidden = false
     status.className = 'status'
-    status.textContent = 'Sending…'
+    status.textContent = 'Signing in…'
 
     try {
-      await onRequestMagicLink(email)
-      status.className = 'status status--success'
-      status.textContent = `Check ${email} for a sign-in link.`
+      await onSignIn(email, password)
+      // On success, the auth state change listener in main.js re-renders
+      // the app — nothing further to do here.
     } catch (err) {
       status.className = 'status status--error'
-      status.textContent = err.message || 'Something went wrong. Try again.'
+      status.textContent = err.message || 'Sign-in failed. Check your email and password.'
     } finally {
       button.disabled = false
     }
