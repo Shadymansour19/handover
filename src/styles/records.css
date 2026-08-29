@@ -71,6 +71,32 @@
   width: 6%;
 }
 
+/* Mobile phones: drop the Start date column entirely from the main
+   equipment records table (scoped to `.equipment-records-table`, not the
+   bare `.records-table` also shared by the History/Manage Users tables,
+   which keep their own columns as-is) — there isn't enough width for four
+   columns on a phone screen without every one of them being cramped. The
+   freed width goes mostly to Scope, with a smaller bump to Status. Hiding
+   both the <col> and the nth-child(1) cells is needed together: table-
+   layout: fixed maps columns from the <colgroup>, and browsers only
+   collapse a column's width and re-flow the remaining cells when both
+   agree it's gone. */
+@media (max-width: 600px) {
+  .equipment-records-table col.col-start-date,
+  .equipment-records-table th:nth-child(1),
+  .equipment-records-table td:nth-child(1) {
+    display: none;
+  }
+
+  .equipment-records-table .col-scope {
+    width: 69%;
+  }
+
+  .equipment-records-table .col-status {
+    width: 25%;
+  }
+}
+
 /* History modal's table — different columns, same table-layout: fixed
    scheme, so it needs its own set rather than reusing the ones above. */
 .col-history-timestamp {

@@ -82,7 +82,7 @@ function renderEquipmentSection(equipment, systemRecords, permissions, isTracked
         ${escapeHTML(equipment.name)}
         ${trackingHTML}
       </h3>
-      <table class="records-table">
+      <table class="records-table equipment-records-table">
         <colgroup>
           <col class="col-start-date" />
           <col class="col-scope" />

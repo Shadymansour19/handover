@@ -50,12 +50,11 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       </label>
       <label>End date
         <input type="date" id="field-end-date" value="${initial.end_date ?? ''}" disabled />
-        <span class="hint">Set automatically once status is Done/Canceled/Held.</span>
       </label>
       <label>Work scope
         <input type="text" id="field-work-scope" value="${escapeHTML(initial.work_scope)}" required />
       </label>
-      <label>Detailed steps <span class="hint">(one step per line)</span>
+      <label>Detailed steps (one step per line)
         <textarea id="field-detailed-steps" rows="4">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
       </label>
       <label>Work status
@@ -64,7 +63,7 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       <label id="field-work-status-other-wrap" hidden>Other status (free text)
         <input type="text" id="field-work-status-other" value="${escapeHTML(initial.work_status_other ?? '')}" />
       </label>
-      <label>Comment <span class="hint">(one point per line)</span>
+      <label>Comment (one point per line)
         <textarea id="field-comment" rows="3">${escapeHTML(initial.comment ?? '')}</textarea>
       </label>
       <p id="record-form-error" class="status status--error" hidden></p>
