@@ -113,6 +113,18 @@ body {
   color: var(--text);
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
 button {
   padding: 0.4rem 0.9rem;
   border-radius: 4px;
@@ -197,6 +209,16 @@ button:disabled {
 .records-table .no-records {
   color: var(--text-muted);
   font-style: italic;
+}
+
+.row-deleted {
+  opacity: 0.6;
+}
+
+.deleted-tag {
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: normal;
 }
 
 .actions {

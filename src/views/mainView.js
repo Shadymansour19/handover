@@ -2,6 +2,7 @@ import { fetchSystemsWithEquipment } from '../data/systemsEquipment.js'
 import {
   fetchMaintenanceRecords,
   softDeleteMaintenanceRecord,
+  restoreMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
 import { fetchOwnProfile } from '../data/profiles.js'
 import { getDefaultRange } from '../lib/dateRange.js'
@@ -32,6 +33,9 @@ export async function renderMainView(container, { session, onSignOut }) {
         <label>From <input type="date" id="filter-from" value="${range.from}" /></label>
         <label>To <input type="date" id="filter-to" value="${range.to}" /></label>
         <button type="submit">Apply</button>
+        <label id="show-deleted-wrap" class="checkbox-label" hidden>
+          <input type="checkbox" id="show-deleted" /> Show deleted
+        </label>
       </form>
       <button id="new-record" type="button">+ New Record</button>
     </div>
@@ -43,6 +47,7 @@ export async function renderMainView(container, { session, onSignOut }) {
   container.querySelector('#sign-out').addEventListener('click', onSignOut)
 
   let currentRange = range
+  let includeDeleted = false
   const form = container.querySelector('#date-filter')
   form.addEventListener('submit', (event) => {
     event.preventDefault()
@@ -50,6 +55,11 @@ export async function renderMainView(container, { session, onSignOut }) {
       from: container.querySelector('#filter-from').value,
       to: container.querySelector('#filter-to').value,
     }
+    reload()
+  })
+
+  container.querySelector('#show-deleted').addEventListener('change', (event) => {
+    includeDeleted = event.target.checked
     reload()
   })
 
@@ -112,8 +122,20 @@ export async function renderMainView(container, { session, onSignOut }) {
       })
     } else if (button.dataset.action === 'delete') {
       handleDelete(record)
+    } else if (button.dataset.action === 'restore') {
+      handleRestore(record)
     }
   })
+
+  async function handleRestore(record) {
+    if (!window.confirm(`Restore the "${record.work_scope}" record?`)) return
+    try {
+      await restoreMaintenanceRecord(record.id)
+      reload()
+    } catch (err) {
+      window.alert(err.message || 'Failed to restore record.')
+    }
+  }
 
   async function handleDelete(record) {
     if (!window.confirm(`Delete the "${record.work_scope}" record? This can be undone by an admin only.`)) {
@@ -130,10 +152,12 @@ export async function renderMainView(container, { session, onSignOut }) {
   async function reload() {
     recordsContainer.innerHTML = '<p class="loading">Loading…</p>'
     try {
-      const [systems, records, profile] = await Promise.all([
+      const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
+      const isAdmin = profile.role === 'admin'
+
+      const [systems, records] = await Promise.all([
         fetchSystemsWithEquipment(),
-        fetchMaintenanceRecords(currentRange),
-        state.profile ? Promise.resolve(state.profile) : fetchOwnProfile(session.user.id),
+        fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
       ])
       state.systems = systems
       state.records = records
@@ -141,12 +165,14 @@ export async function renderMainView(container, { session, onSignOut }) {
 
       const currentUserEl = container.querySelector('#current-user')
       if (currentUserEl) {
-        currentUserEl.textContent = `${profile.username}${profile.role === 'admin' ? ' (admin)' : ''}`
+        currentUserEl.textContent = `${profile.username}${isAdmin ? ' (admin)' : ''}`
       }
+
+      container.querySelector('#show-deleted-wrap').hidden = !isAdmin
 
       recordsContainer.innerHTML = renderSystemsHTML(systems, records, {
         userId: session.user.id,
-        isAdmin: profile.role === 'admin',
+        isAdmin,
       })
     } catch (err) {
       recordsContainer.innerHTML = `<p class="error">Failed to load records: ${escapeHTML(
@@ -228,24 +254,54 @@ function renderRecordRow(record, permissions) {
       ? record.work_status_other
       : record.work_status
 
+  const isDeleted = Boolean(record.deleted_at)
   const canEdit = permissions.isAdmin || record.created_by === permissions.userId
-  const editDisabled = canEdit ? '' : 'disabled title="Only the creator or an admin can edit this"'
-  const deleteDisabled = canEdit ? '' : 'disabled title="Only the creator or an admin can delete this"'
+
+  // Deleted records only ever reach here for an admin (RLS hides them from
+  // everyone else) — but permissions.isAdmin is still checked explicitly
+  // rather than assumed, matching how every other action here is gated.
+  const menuItems = isDeleted
+    ? [
+        { action: 'view', icon: ICONS.view, label: 'View' },
+        permissions.isAdmin
+          ? { action: 'restore', icon: ICONS.restore, label: 'Restore' }
+          : null,
+      ].filter(Boolean)
+    : [
+        { action: 'view', icon: ICONS.view, label: 'View' },
+        {
+          action: 'edit',
+          icon: ICONS.edit,
+          label: 'Edit',
+          disabled: !canEdit,
+          reason: 'Only the creator or an admin can edit this',
+        },
+        {
+          action: 'delete',
+          icon: ICONS.delete,
+          label: 'Delete',
+          disabled: !canEdit,
+          reason: 'Only the creator or an admin can delete this',
+        },
+      ]
+
+  const menuHTML = menuItems
+    .map((item) => {
+      const attrs = item.disabled ? `disabled title="${escapeHTML(item.reason)}"` : ''
+      return `<button data-action="${item.action}" data-record-id="${record.id}" ${attrs}>${item.icon} ${item.label}</button>`
+    })
+    .join('')
 
   return `
-    <tr>
+    <tr class="${isDeleted ? 'row-deleted' : ''}">
       <td>${escapeHTML(record.start_date)}</td>
-      <td>${escapeHTML(record.work_scope)}</td>
+      <td>${escapeHTML(record.work_scope)}${isDeleted ? ' <span class="deleted-tag">(Deleted)</span>' : ''}</td>
       <td>${escapeHTML(status)}</td>
       <td class="actions">
         <div class="row-menu">
           <button type="button" class="row-menu__trigger" data-action="toggle-menu"
                   data-record-id="${record.id}" aria-label="Actions" aria-haspopup="true">⋮</button>
-          <div class="row-menu__dropdown" hidden>
-            <button data-action="view" data-record-id="${record.id}">${ICONS.view} View</button>
-            <button data-action="edit" data-record-id="${record.id}" ${editDisabled}>${ICONS.edit} Edit</button>
-            <button data-action="delete" data-record-id="${record.id}" ${deleteDisabled}>${ICONS.delete} Delete</button>
-          </div>
+          <div class="row-menu__dropdown" hidden>${menuHTML}</div>
         </div>
       </td>
     </tr>
