@@ -243,8 +243,9 @@ cleanly, and succeeds once reassigned to another user.
 - [x] Title reads "Handover - {exporter's full name}" (falls back to
       username, then email) — uses the same `profiles` name-resolution
       already built for "Created by" (Phase 4).
-- [x] Table redesigned per feedback: Date/Status columns narrow (15%/20%),
-      Scope wide (65%) and now carries the whole record — bold
+- [x] Table redesigned per feedback: Date/Status columns narrow (20% each,
+      later widened from an initial 15%/20%), Scope wide (60%, initially
+      65%) and now carries the whole record — bold
       `work_scope` (or the action, for an operation event), then a bulleted
       "Detailed Work Done:" section and a bulleted "Comments:" section,
       each omitted entirely when that field is empty rather than showing
@@ -256,15 +257,22 @@ cleanly, and succeeds once reassigned to another user.
       fresh data with `includeDeleted: false` rather than reusing
       `state.records`, since the export is meant to be the "official"
       record for the period.
-- [x] Column widths actually take effect in Word now (2026-08-30 fix): the
-      percentages were correctly in the XML from the start (verified by
-      inspection), but Word was still auto-fitting to content and
-      rendering equal-width columns anyway — needed an explicit
-      `layout: TableLayoutType.FIXED` on the table, which the earlier
-      "confirmed via XML" check hadn't caught since it only checked the
-      numbers were present, not how Word's default layout mode treats
-      them. Real gap between "structurally correct" and "renders
-      correctly", worth remembering for anything else docx-related.
+- [x] Column widths actually take effect in Word now (2026-08-30, two
+      fixes, the first one insufficient on its own — Date/Scope/Status are
+      20%/60%/20%). Attempt 1: `layout: TableLayoutType.FIXED` on the
+      table — necessary but not sufficient; still rendered equal columns
+      in real Word despite correct per-cell percentages in the XML.
+      Attempt 2 (the actual fix): in fixed-layout mode Word reads column
+      widths from the table's *grid* (`<w:tblGrid>`/`gridCol`, in DXA — 20ths
+      of a point), not the per-cell percentages — `docx` was defaulting
+      that grid to equal placeholder values regardless of the cell
+      percentages. Set explicitly via `columnWidths` (an array of DXA
+      values computed from the same percentages against 9360 DXA, the
+      usable width of a default Letter page with 1" margins). Confirmed
+      by inspecting `gridCol` directly this time (not just `tcW`, which
+      is what the first, insufficient check had looked at) — a real gap
+      between "structurally correct" and "renders correctly" in the exact
+      same file, worth remembering for anything else docx-related.
 - [x] Pagination: the header row is marked `tableHeader` (repeats on each
       page a table spans, and stops Word orphaning it alone at a page
       break with the data starting fresh on the next page); both the

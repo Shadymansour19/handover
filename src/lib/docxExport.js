@@ -27,7 +27,17 @@ const TABLE_HEADER_FILL = 'E2E8F0'
 // Date | Scope | Status, percent — scope carries work_scope/detailed_steps/
 // comment (or the action + comment for an operation event) all bulleted
 // together, so it needs most of the row; Date and Status are short values.
-const COLUMN_WIDTHS = [15, 65, 20]
+const COLUMN_WIDTHS = [20, 60, 20]
+
+// In Word's fixed-layout mode (needed so widths aren't auto-fit to content
+// — see the Table() call below), the per-cell percentage widths turned out
+// not to be what Word actually renders from; it uses the table's grid
+// (<w:tblGrid>/gridCol), which `columnWidths` below controls, in DXA
+// (twentieths of a point — 1440 = 1 inch). This assumes the default page
+// setup (Letter, 1" margins each side, since nothing here customizes it):
+// 12240 total - 1440*2 margins = 9360 DXA of usable width.
+const USABLE_WIDTH_DXA = 9360
+const COLUMN_WIDTHS_DXA = COLUMN_WIDTHS.map((pct) => Math.round((pct / 100) * USABLE_WIDTH_DXA))
 
 function cell(content, { header = false, width, columnSpan } = {}) {
   const children = Array.isArray(content)
@@ -147,11 +157,14 @@ function buildEquipmentTable(timeline, equipmentId, nameOf) {
   }
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    // Without this, Word ignores the per-cell percentage widths above and
-    // auto-fits columns to content instead — which is why they all came
-    // out equal width despite the correct percentages already being in
-    // the file (confirmed by inspecting the XML directly; the values were
-    // right, Word just wasn't honoring them without an explicit layout).
+    // layout: FIXED without columnWidths still rendered equal columns —
+    // turns out Word's fixed layout is driven by the table's grid
+    // (columnWidths, in DXA), not the per-cell percentage widths above,
+    // which is why the first attempt (percentages + layout:FIXED alone)
+    // didn't change anything despite the percentages being correctly in
+    // the file. Both are kept: columnWidths for the actual proportions,
+    // the per-cell percentage widths as a harmless secondary hint.
+    columnWidths: COLUMN_WIDTHS_DXA,
     layout: TableLayoutType.FIXED,
     rows,
   })
