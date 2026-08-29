@@ -152,13 +152,16 @@
   font-weight: normal;
 }
 
-.actions {
+/* Scoped as `.records-table td.actions` (not just `.actions`) on purpose:
+   `.records-table td`'s own `padding: 0.5rem` above is a class+type
+   selector, which beats a bare `.actions` class selector on specificity
+   regardless of source order — that's why an earlier padding-right
+   override here silently never took effect (the margin never actually
+   shrank, just the column got a little wider around it). This selector
+   has to be at least as specific to win. */
+.records-table td.actions {
   text-align: right;
-  /* Cuts into the general td padding (0.5rem both sides above) since the
-     column itself is now trimmed to the ⋮ button's footprint — full
-     padding on both sides would eat most of that width back up. */
-  padding-left: 0.1rem;
-  padding-right: 0.1rem;
+  padding-right: 0;
 }
 
 .row-menu {
@@ -167,11 +170,16 @@
 }
 
 .row-menu__trigger {
-  /* Trimmed from 0.7rem horizontal — the actions column itself was
-     narrowed right down to this button's footprint (col-actions/
-     col-users-actions/col-history-actions above), so the button needs to
-     be as slim as it can stay comfortably tappable. */
-  padding: 0.3rem 0.25rem;
+  /* Fixed square (not padding-driven sizing) so it's an actual square
+     button flush against the row's right edge (.records-table td.actions
+     above has zero right padding) rather than a rectangle with variable
+     margin around it. */
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.1rem;
   line-height: 1;
 }
