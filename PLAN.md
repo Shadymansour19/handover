@@ -142,37 +142,65 @@ history.
 
 ## Phase 4 — Date range filter
 
-- [x] Operation events now show in the main view's per-equipment table
-      (`fetchOperationEvents`), not just the History modal — combined
-      chronologically with maintenance records via a new pure helper,
-      `lib/combinedTimeline.js` (`buildEquipmentTimeline`), written to be
-      reused as-is by Phase 5's export (same "combined chronological
-      table... Swap under both equipment" requirement).
 - [x] Maintenance records: existing overlap check
       (`start_date <= to AND (end_date IS NULL OR end_date >= from)`)
       already handled the open-ended-`end_date` edge case correctly from
       Phase 1/2 — nothing to change there.
-- [x] Operation events: date-falls-in-range check
-      (`event_timestamp` between local-midnight `from` and local-end-of-day
-      `to`), matching SPEC.md's "shown if their date falls in range" (a
-      point-in-time check, not an overlap check).
-- [x] Row-level actions (Edit/Delete/admin Restore/Delete-forever) work for
-      operation-event rows in the combined table too, not just from the
-      History modal — routed by a new `data-record-type` attribute on each
-      action button, since maintenance and operation rows share the same
-      action names ("edit", "delete", ...) but need different handlers.
-- [x] Operation event rows get a subtle background tint (`.row-operation`)
-      and a "⚙" prefix on the action label — the only visual cue
-      distinguishing them from maintenance rows, since both share the same
-      four columns (relabeled "Date" / "Scope / Action" / "Status /
-      Comment" / "Actions" to fit both row types honestly).
-- [ ] Not yet manually verified against live data.
+- [x] ~~Operation events shown in the main view's per-equipment table~~ —
+      built (combined chronologically with maintenance records via
+      `lib/combinedTimeline.js`), then **explicitly reverted** (2026-08-30):
+      operation events are viewed via the "History" button only, never in
+      the main table. `lib/combinedTimeline.js` was kept rather than
+      deleted — Phase 5's export needs the identical merge logic, just
+      rendered to docx instead of HTML. See SPEC.md's revision note on the
+      original "Date range filter" spec bullet.
+- [x] Consistent `dd-mm-yyyy` date display everywhere records are shown
+      read-only (`lib/dateFormat.js`) — `<input type="date">` /
+      `<input type="datetime-local">` fields are unaffected (the browser
+      requires `yyyy-mm-dd` / `yyyy-mm-ddTHH:mm` internally regardless of
+      display format; that's a native-input constraint, not a choice).
+- [x] Verified working end-to-end by the user.
 
-**Exit criteria**: an operation event created today shows in the main
-table under its equipment (not just in History); a Swap shows under both
-units involved; changing the From/To range changes which operation events
-appear; editing/deleting an operation event directly from the main table
-(not via History) works and is permission-gated the same way.
+**Exit criteria — met**: maintenance records still filter correctly by
+date range; operation events are reachable only via History, not the main
+table; every displayed date (main table, View modal, History) reads
+dd-mm-yyyy consistently.
+
+## Phase 4.5 — User management (added 2026-08-30, not in the original spec)
+
+- [x] Admin can create a new account in-app: "Manage Users" → "+ Add
+      user" (email, password, username, full name, role) — via the
+      `admin-manage-users` Edge Function (needs `service_role`, see
+      SPEC.md's "user management" decisions).
+- [x] Admin can view all users (username, full name, email, role, active
+      status) via `list_users()`, and edit role/username/full
+      name/active status directly (plain RLS-governed update, new
+      `profiles_update` policy).
+- [x] Admin can set any other user's password (same Edge Function,
+      `set-password` action).
+- [x] Any signed-in user can change their own password ("Change
+      Password" in the header) — no Edge Function needed, re-verifies
+      the current password first via a fresh sign-in.
+- [x] Self-lockout guard: an admin can't demote or deactivate their own
+      account through the "Manage Users" UI — confirmed by direct testing
+      that doing so instantly revokes the caller's own access to
+      everything (`is_allowed_user()`/`is_admin()` both check the
+      *caller's* profile). UI-level guard only, not enforced server-side —
+      see SPEC.md for why that's an accepted gap for now.
+- [ ] SQL migration (`20260830100000_admin_manage_users.sql`) applied and
+      tested directly against the live DB. **Not yet done**: deploying the
+      Edge Function (needs the Supabase CLI logged in — can't be done via
+      the GitHub integration or direct DB access, both used for everything
+      else so far) and manually testing create-user/set-password/edit/
+      change-own-password end-to-end in the real app.
+
+**Exit criteria**: admin creates a new user via "Manage Users" and that
+user can log in with the given credentials; admin edits another user's
+role and it takes effect (RLS-enforced, not just hidden in the UI); admin
+sets another user's password and they can log in with it; any user changes
+their own password via "Change Password" and can log back in with the new
+one; the "Manage Users" edit form refuses to let the signed-in admin
+demote/deactivate themselves.
 
 ## Phase 5 — `.docx` export
 

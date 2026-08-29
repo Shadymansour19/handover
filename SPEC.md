@@ -14,6 +14,23 @@ read this before re-deriving requirements from scratch in a future session.
   the admin creates directly (no public sign-up).
 - **Export**: Client-side `.docx` generation via the `docx` npm library. No PDF.
 - **Hosting**: static site on Vercel or Netlify (free tier).
+- **Admin user management**: a Supabase Edge Function
+  (`supabase/functions/admin-manage-users/`), used only for the two things
+  that genuinely require the `service_role` key (creating an account,
+  setting someone else's password) — see "2026-08-30 — user management"
+  below. Deployed separately from migrations (`supabase functions deploy`),
+  not via the GitHub integration.
+
+## Decisions made (2026-08-30) — user management
+
+| Question | Decision | Why / implication |
+| --- | --- | --- |
+| How does an admin create a new account in-app (instead of the dashboard)? | **Edge Function `admin-manage-users`, action `create`** | Creating an `auth.users` row requires the Admin API (`auth.admin.createUser`), which needs `service_role` — never usable from the browser. The function verifies the caller is authenticated and `is_admin()` (via their own session) before touching `service_role`, which is only ever held inside the function's own runtime. |
+| How does an admin edit someone's role/username/active status? | **Plain client-side `UPDATE` on `profiles`, RLS-governed** | Unlike account creation, this doesn't need `service_role` — added a `profiles_update` policy (`using (is_admin()) with check (is_admin())`, `20260830100000_admin_manage_users.sql`). `profiles` had **no** update policy at all before this; role/username changes were SQL-editor-only until now. |
+| How does an admin see users' email addresses? | **`list_users()` SECURITY DEFINER RPC** | Email lives in `auth.users`, which RLS can't reach (Supabase-managed schema, not ours). The function joins `auth.users` + `profiles` and checks `is_admin()` itself — a non-admin gets an empty result, not an error (a read, so silent-empty is fine; contrast with the Edge Function's writes, which raise real errors for a non-admin). |
+| How does an admin set someone ELSE's password? | **Edge Function, action `set-password`** | Same `service_role` requirement as account creation (`auth.admin.updateUserById`). |
+| How does a user change their OWN password? | **Direct client call, no Edge Function** | `supabase.auth.updateUser({ password })` works with the caller's own session — no `service_role` needed for your own account. Re-verifies the current password first via a fresh `signInWithPassword` call (Supabase's `updateUser` doesn't require this on its own, which would otherwise let anyone with a hijacked/unlocked session change the password without knowing it, locking the real owner out). |
+| Can an admin deactivate/demote themselves via the UI? | **No — blocked client-side** | Confirmed by direct testing: deactivating your own profile instantly loses you `is_allowed_user()`/`is_admin()` (both check the *caller's own* profile), locking you out of every table immediately, no error, no undo except another admin (or direct DB access) reactivating you. Correct behavior for deactivating *someone else*, a nasty footgun on yourself. The "Manage Users" edit form disables the role/active controls on the signed-in admin's own row. **Not enforced server-side** — a big enough gap to note, small enough (single-admin internal tool) not to fix with an RLS/trigger guard right now. |
 
 ## Decisions made (2026-08-27)
 
@@ -170,7 +187,13 @@ every equipment row, even with zero records).
     (only for Swap, filtered to Stopped units) → Comment.
 - Date range filter (From/To, default last 7 days). Maintenance record shows
   if its date range overlaps the filter interval; operation events show if
-  their date falls in range.
+  their date falls in range. **Revised 2026-08-30**: operation events are
+  **not** shown in the main view's table at all (an attempt to add them
+  there, combined chronologically with maintenance records, was built and
+  then explicitly reverted) — they're viewed via the "History" button only.
+  The date-range-filtered combined view this bullet describes still applies
+  to the `.docx` export below, which is why `lib/combinedTimeline.js` (the
+  merge logic built for the reverted attempt) was kept rather than deleted.
 - Multi-line fields render as bullet lists in View modal.
 - Export button: `.docx` for current filtered range — System banner (styled)
   → Equipment sub-header (styled, shows Running status) → combined

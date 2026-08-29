@@ -13,6 +13,8 @@ import { openMaintenanceRecordModal } from './recordModal.js'
 import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
 import { openHistoryModal } from './historyModal.js'
+import { openManageUsersModal } from './manageUsersModal.js'
+import { openChangePasswordModal } from './changePasswordModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) slice. Export
@@ -30,6 +32,8 @@ export async function renderMainView(container, { session, onSignOut }) {
       <h1>Handover</h1>
       <div class="app-header__user">
         <span id="current-user">${escapeHTML(session.user.email)}</span>
+        <button id="manage-users" type="button" hidden>Manage Users</button>
+        <button id="change-password" type="button">Change Password</button>
         <button id="sign-out" type="button">Sign out</button>
       </div>
     </header>
@@ -50,6 +54,14 @@ export async function renderMainView(container, { session, onSignOut }) {
   `
 
   container.querySelector('#sign-out').addEventListener('click', onSignOut)
+
+  container.querySelector('#manage-users').addEventListener('click', () => {
+    openManageUsersModal({ currentUserId: session.user.id })
+  })
+
+  container.querySelector('#change-password').addEventListener('click', () => {
+    openChangePasswordModal({ email: session.user.email })
+  })
 
   let currentRange = range
   let includeDeleted = false
@@ -216,6 +228,7 @@ export async function renderMainView(container, { session, onSignOut }) {
       }
 
       container.querySelector('#show-deleted-wrap').hidden = !isAdmin
+      container.querySelector('#manage-users').hidden = !isAdmin
 
       recordsContainer.innerHTML = renderSystemsHTML(
         systems,

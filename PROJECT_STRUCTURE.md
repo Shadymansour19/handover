@@ -2,8 +2,8 @@
 
 Vanilla JS + Vite, built as a PWA via `vite-plugin-pwa` (generateSW strategy
 — app-shell caching only, per SPEC.md). No UI framework. This reflects the
-actual current tree (Phase 1 + 2 + 3 + 4 built) — see PLAN.md for what's
-still planned in later phases.
+actual current tree (Phase 1 + 2 + 3 + 4 + 4.5 built) — see PLAN.md for
+what's still planned in later phases.
 
 ```text
 handover/
@@ -16,7 +16,10 @@ handover/
 │
 ├── supabase/
 │   ├── config.toml             # minimal — no local Docker dev, GitHub-integration deploy only
-│   └── migrations/             # canonical schema; auto-deployed on push, see README "Setup"
+│   ├── migrations/             # canonical schema; auto-deployed on push, see README "Setup"
+│   └── functions/
+│       └── admin-manage-users/ # create account / set someone else's password (needs service_role);
+│                                # deployed separately via Supabase CLI, NOT the GitHub integration
 │
 ├── public/
 │   └── icons/                  # 192x192, 512x512, maskable — placeholders, real branding is Phase 6
@@ -37,14 +40,17 @@ handover/
     │
     ├── lib/
     │   ├── constants.js        # WORK_STATUSES, ACTIONS, terminal-status check — mirror the DB enums
-    │   ├── dateRange.js        # default "last 7 days", ISO-date + datetime-local input helpers
+    │   ├── dateRange.js        # default "last 7 days"; ISO-date + datetime-local INPUT-value helpers
+    │   ├── dateFormat.js       # dd-mm-yyyy DISPLAY formatting — never used for input values (see
+    │   │                       # dateRange.js; those must stay browser-native yyyy-mm-dd)
     │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG action icons (view/edit/delete/restore)
     │   ├── modal.js            # openModal(): overlay/close/escape-key + onClose() cleanup hook
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
-    │   │                       # used by recordsTable.js now, and Phase 5's export later (same shape)
+    │   │                       # built for Phase 4's main-table attempt (since reverted), kept for
+    │   │                       # Phase 5's export, which needs the identical merge logic
     │   └── docxExport.js       # Phase 5: docx generation
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
@@ -52,19 +58,24 @@ handover/
     │   ├── operationEvents.js     # fetch (range + per-equipment history) + create/update +
     │   │                          # soft-delete/restore/hard-delete; equipment_status fetch
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution
+    │   ├── users.js                # admin user management: list_users(), profiles update (RLS),
+    │   │                           # + the two Edge-Function-backed calls (create, set-password)
     │   └── systemsEquipment.js    # reference data (systems + nested equipment, ordered)
     │
     └── views/                  # each view is a function that renders into a container element
         ├── loginView.js        # username/email + password form
         ├── mainView.js         # controller: DOM wiring, event delegation, data orchestration
-        ├── recordsTable.js     # pure rendering: (systems, records, operationEvents, permissions,
-        │                       # equipmentStatuses) -> HTML string, one combined chronological
-        │                       # table per equipment; split out of mainView.js once that mixed concerns
+        ├── recordsTable.js     # pure rendering: (systems, records, permissions, equipmentStatuses)
+        │                       # -> HTML string, maintenance records only (operation events are
+        │                       # History-only — see combinedTimeline.js's note above)
         ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two forms
         ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal (edit)
         ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal (edit)
         ├── viewRecordModal.js  # read-only View modal, bullet rendering
-        └── historyModal.js     # all operation events for one unit; Edit/Delete per event
+        ├── historyModal.js     # all operation events for one unit; Edit/Delete per event; admin
+        │                       # "Show deleted" + Restore/Delete-forever, same as maintenance records
+        ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
+        └── changePasswordModal.js  # any signed-in user: change their own password
 ```
 
 ## Notes
@@ -78,9 +89,13 @@ handover/
   status derivation helpers, docx building) that's easy to unit-test without
   a network call.
 - **Modals aren't a framework-style component system** — `lib/modal.js` just
-  factors out the overlay/close/escape-key plumbing so `recordModal.js` and
-  `viewRecordModal.js` don't repeat it; each modal still builds its own
-  innerHTML string and wires its own listeners directly.
+  factors out the overlay/close/escape-key plumbing so every modal file
+  doesn't repeat it; each modal still builds its own innerHTML string and
+  wires its own listeners directly. `manageUsersModal.js` and
+  `historyModal.js` both also use `onClose()` (returned by `openModal`) to
+  clean up their own document-level "outside click" listener, since that
+  listener would otherwise leak (re-added, never removed) every time the
+  modal reopens.
 - **CSS is split by concern, not by component** — there's no CSS-in-JS or
   scoping, so `styles/*.css` files are just named groupings (login, layout,
   records table, modals) plumbed together via `@import` from `main.css`.
@@ -91,12 +106,6 @@ handover/
   data-to-HTML rendering functions. `recordsTable.js` holds only the pure
   part (`renderSystemsHTML` and its private helpers) — no DOM queries, no
   listeners, easy to reason about (or eventually test) in isolation.
-- **Combined-table action buttons carry a `data-record-type` attribute**
-  (`"maintenance"` or `"operation"`) — since Phase 4 put both row kinds in
-  the same table, "edit"/"delete"/"restore"/"hard-delete" are ambiguous
-  action names on their own; `mainView.js`'s click delegation branches on
-  this attribute before doing anything else to know which data array and
-  handler set applies.
 - **`renderMaintenanceForm`/`renderOperationForm` are embeddable, not just
   modal-only** — each fills a given container element and wires itself,
   independent of how that container got on the page. `newRecordModal.js`
@@ -104,6 +113,12 @@ handover/
   `openMaintenanceRecordModal`/`openOperationEventModal` each just wrap
   their form in a single-purpose modal for editing an existing record.
   Avoids duplicating the form logic between the two entry points.
+- **Edge Function vs. plain client calls for user management** — only
+  creating an account and setting someone ELSE's password go through
+  `admin-manage-users` (they need `service_role`, which can never reach the
+  browser); viewing users, editing role/username/active status, and
+  changing your OWN password are all plain RLS-governed client calls. See
+  SPEC.md "2026-08-30 — user management" for the full reasoning per case.
 - **Env vars**: Vite exposes `import.meta.env.VITE_*` — so `.env.local` keys
   should be `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. The anon key is
   safe to ship client-side; it relies entirely on RLS (see

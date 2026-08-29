@@ -3,10 +3,10 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phases 1–3 (auth, Maintenance CRUD, operation tracking) are
-verified end-to-end. Phase 4 (unified date-range filter) is built but not
-yet manually verified against live data — see [PLAN.md](PLAN.md) for
-what's built vs. what's next.
+**Status**: Phases 1–4 (auth, Maintenance CRUD, operation tracking,
+date-range display) are verified end-to-end. User management (Phase 4.5)
+is built but needs the Edge Function deployed and manually tested — see
+[PLAN.md](PLAN.md) for what's built vs. what's next.
 
 ## Reference docs
 
@@ -44,20 +44,33 @@ what's built vs. what's next.
    same way.
 6. **Configure the frontend**: copy `.env.local.example` to `.env.local` and
    fill in your project's URL + anon key (Project Settings > API).
-7. **Install and run**:
+7. **Deploy the Edge Function** (needed for "Manage Users" — creating
+   accounts and setting someone else's password; everything else doesn't
+   need this step). Unlike `supabase/migrations/`, this does **not**
+   auto-deploy via the GitHub integration — it needs the Supabase CLI,
+   logged in once:
+
+   ```sh
+   npx supabase login
+   npx supabase link --project-ref pfkpvkaybylrdnfwycxn
+   npx supabase functions deploy admin-manage-users
+   ```
+
+8. **Install and run**:
 
    ```sh
    npm install
    npm run dev
    ```
 
-## What's implemented (Phase 1 + 2 + 3 + 4)
+## What's implemented (Phase 1 + 2 + 3 + 4 + 4.5)
 
 - Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
   fetches `systems`/`equipment` and `maintenance_records` (default date
   range = last 7 days, adjustable), groups by System → Equipment, and
-  applies the hide-when-empty rule for Workshop/Others/Scarab GTG.
+  applies the hide-when-empty rule for Workshop/Others/Scarab GTG. Every
+  displayed date reads `dd-mm-yyyy` consistently.
 - "+ New Record" modal with a Maintenance/Operation tab toggle. Maintenance:
   create/Edit (same form, pre-filled), read-only View modal with
   bullet-rendered `detailed_steps`/`comment`, soft-delete, admin
@@ -69,13 +82,16 @@ what's built vs. what's next.
   enforced client-side.
 - Tracked equipment (PHVII GTG / Main Compressor / Booster Compressor,
   excluding Generic) shows a green "(Running)" tag and a "History" button
-  opening the full event history for that unit, with permission-gated
+  opening the full event history for that unit (not shown in the main
+  table itself — History-only, by design), with permission-gated
   Edit/Delete per event and the same admin view/restore/permanent-delete as
   maintenance records.
-- The main view's per-equipment table now shows operation events alongside
-  maintenance records, combined into one chronologically-sorted table
-  within the current date filter — not just visible via History anymore. A
-  Swap shows under both units involved.
+- "Manage Users" (admin-only, in the header): view every user with their
+  email, create a new account, edit role/username/full name/active status,
+  set anyone's password — see SPEC.md "user management" for what needs the
+  Edge Function vs. a plain RLS-governed update.
+- "Change Password" (any signed-in user, in the header): change your own
+  password, with current-password re-verification.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
 
 Not yet implemented: `.docx` export — see [PLAN.md](PLAN.md) Phase 5, and
