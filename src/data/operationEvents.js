@@ -16,13 +16,23 @@ export async function fetchEquipmentStatuses() {
 // All events for one unit, as either primary or secondary (Swap) — full
 // history, not date-range-filtered. Spec: "History button... opens a modal
 // listing ALL operation events for that unit."
-export async function fetchEquipmentHistory(equipmentId) {
-  const { data, error } = await supabase
+//
+// includeDeleted only actually returns anything extra for an admin — RLS
+// hides deleted rows from everyone else regardless of this flag (see
+// 20260830090000_admin_view_restore_operation_events.sql), same as
+// maintenance records.
+export async function fetchEquipmentHistory(equipmentId, { includeDeleted = false } = {}) {
+  let query = supabase
     .from('operation_events')
     .select(SELECT_COLUMNS)
     .or(`equipment_id.eq.${equipmentId},secondary_equipment_id.eq.${equipmentId}`)
     .order('event_timestamp', { ascending: false })
 
+  if (!includeDeleted) {
+    query = query.is('deleted_at', null)
+  }
+
+  const { data, error } = await query
   if (error) throw error
   return data
 }
@@ -63,6 +73,26 @@ export async function updateOperationEvent(id, fields) {
 // was already added pre-emptively in 20260830050000_soft_delete_rpc.sql.
 export async function softDeleteOperationEvent(id) {
   const { error } = await supabase.rpc('soft_delete_operation_event', {
+    event_id: id,
+  })
+
+  if (error) throw error
+}
+
+// Admin-only — restore_operation_event() checks this server-side too.
+export async function restoreOperationEvent(id) {
+  const { error } = await supabase.rpc('restore_operation_event', {
+    event_id: id,
+  })
+
+  if (error) throw error
+}
+
+// Admin-only, and only on an already soft-deleted event — enforced
+// server-side. Irreversible; otherwise the on-demand version of the 30-day
+// auto-purge (20260830070000_purge_deleted_after_30_days.sql).
+export async function hardDeleteOperationEvent(id) {
+  const { error } = await supabase.rpc('hard_delete_operation_event', {
     event_id: id,
   })
 

@@ -117,6 +117,12 @@ built (and tested) in Phase 1. This phase was near-entirely frontend.
       unit (not date-range-limited — full history, per spec), Edit/Delete
       per event, permission-gated the same way as maintenance records (own
       event, or admin) via the same RLS already in place.
+- [x] Admin view/restore/permanent-delete parity with maintenance records:
+      "Show deleted" toggle in the History modal, `restore_operation_event`
+      / `hard_delete_operation_event` RPCs
+      (`20260830090000_admin_view_restore_operation_events.sql`). Added
+      after initially deferring it — same pattern, applied once the
+      History modal existed to expose it.
 - [x] Editing an existing event skips the live-status validation
       (deliberate: enforcing "current" equipment status against an edit of
       a possibly-old event doesn't make sense — e.g. fixing a comment typo

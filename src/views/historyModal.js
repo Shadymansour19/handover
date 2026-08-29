@@ -1,4 +1,9 @@
-import { fetchEquipmentHistory, softDeleteOperationEvent } from '../data/operationEvents.js'
+import {
+  fetchEquipmentHistory,
+  softDeleteOperationEvent,
+  restoreOperationEvent,
+  hardDeleteOperationEvent,
+} from '../data/operationEvents.js'
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { openModal } from '../lib/modal.js'
@@ -7,7 +12,8 @@ import { openOperationEventModal } from './operationEventModal.js'
 // "All operation events for that unit" (SPEC.md) — full history, not
 // limited to the main view's date filter. Edit/Delete per event,
 // permission-gated the same way as the maintenance records table (own
-// event, or admin).
+// event, or admin) — including the same admin view/restore/hard-delete of
+// soft-deleted events (20260830090000_admin_view_restore_operation_events.sql).
 export async function openHistoryModal({ equipment, systems, equipmentStatuses, userId, isAdmin, onChanged }) {
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
@@ -15,6 +21,13 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
   const { modalEl, close } = openModal(
     `
     <h2>History — ${escapeHTML(equipment.name)}</h2>
+    ${
+      isAdmin
+        ? `<label class="checkbox-label">
+             <input type="checkbox" id="history-show-deleted" /> Show deleted
+           </label>`
+        : ''
+    }
     <div id="history-content"><p class="loading">Loading…</p></div>
     <div class="modal-actions">
       <button type="button" id="history-close">Close</button>
@@ -26,6 +39,7 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
   modalEl.querySelector('#history-close').addEventListener('click', close)
 
   const content = modalEl.querySelector('#history-content')
+  let includeDeleted = false
 
   // Populated by load(), read by the single delegated click listener below
   // — kept as shared state rather than a listener closure argument so
@@ -47,6 +61,7 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
             ? `Swap → ${escapeHTML(nameOf(event.secondary_equipment_id))}`
             : escapeHTML(event.action)
 
+        const isDeleted = Boolean(event.deleted_at)
         const canEdit = isAdmin || event.created_by === userId
         const disabledAttrs = canEdit
           ? ''
@@ -54,19 +69,38 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
 
         const when = new Date(event.event_timestamp).toLocaleString()
 
+        // Deleted events only ever reach here for an admin (RLS hides them
+        // from everyone else) — same shape as the maintenance table's
+        // deleted-row menu: no Edit, just Restore/Delete forever.
+        const menuItems = isDeleted
+          ? [
+              isAdmin ? { action: 'restore', icon: ICONS.restore, label: 'Restore' } : null,
+              isAdmin
+                ? { action: 'hard-delete', icon: ICONS.delete, label: 'Delete forever' }
+                : null,
+            ].filter(Boolean)
+          : [
+              { action: 'edit', icon: ICONS.edit, label: 'Edit', attrs: disabledAttrs },
+              { action: 'delete', icon: ICONS.delete, label: 'Delete', attrs: disabledAttrs },
+            ]
+
+        const menuHTML = menuItems
+          .map(
+            (item) =>
+              `<button data-action="${item.action}" data-event-id="${event.id}" ${item.attrs ?? ''}>${item.icon} ${item.label}</button>`
+          )
+          .join('')
+
         return `
-          <tr>
+          <tr class="${isDeleted ? 'row-deleted' : ''}">
             <td>${escapeHTML(when)}</td>
-            <td>${actionLabel}</td>
+            <td>${actionLabel}${isDeleted ? ' <span class="deleted-tag">(Deleted)</span>' : ''}</td>
             <td>${escapeHTML(event.comment ?? '')}</td>
             <td class="actions">
               <div class="row-menu">
                 <button type="button" class="row-menu__trigger" data-action="toggle-menu"
                         data-event-id="${event.id}" aria-label="Actions" aria-haspopup="true">⋮</button>
-                <div class="row-menu__dropdown" hidden>
-                  <button data-action="edit" data-event-id="${event.id}" ${disabledAttrs}>${ICONS.edit} Edit</button>
-                  <button data-action="delete" data-event-id="${event.id}" ${disabledAttrs}>${ICONS.delete} Delete</button>
-                </div>
+                <div class="row-menu__dropdown" hidden>${menuHTML}</div>
               </div>
             </td>
           </tr>
@@ -93,7 +127,7 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
   async function load() {
     content.innerHTML = '<p class="loading">Loading…</p>'
     try {
-      currentEvents = await fetchEquipmentHistory(equipment.id)
+      currentEvents = await fetchEquipmentHistory(equipment.id, { includeDeleted })
       content.innerHTML = renderEventsTable(currentEvents)
     } catch (err) {
       currentEvents = []
@@ -102,6 +136,12 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
       )}</p>`
     }
   }
+
+  const showDeletedCheckbox = modalEl.querySelector('#history-show-deleted')
+  showDeletedCheckbox?.addEventListener('change', (event) => {
+    includeDeleted = event.target.checked
+    load()
+  })
 
   function closeAllMenus() {
     content.querySelectorAll('.row-menu__dropdown').forEach((el) => {
@@ -148,6 +188,30 @@ export async function openHistoryModal({ equipment, systems, equipmentStatuses, 
         onChanged?.()
       } catch (err) {
         window.alert(err.message || 'Failed to delete event.')
+      }
+    } else if (button.dataset.action === 'restore') {
+      if (!window.confirm('Restore this operation event?')) return
+      try {
+        await restoreOperationEvent(record.id)
+        load()
+        onChanged?.()
+      } catch (err) {
+        window.alert(err.message || 'Failed to restore event.')
+      }
+    } else if (button.dataset.action === 'hard-delete') {
+      if (
+        !window.confirm(
+          'Permanently delete this operation event? This cannot be undone — there is no restore after this.'
+        )
+      ) {
+        return
+      }
+      try {
+        await hardDeleteOperationEvent(record.id)
+        load()
+        onChanged?.()
+      } catch (err) {
+        window.alert(err.message || 'Failed to permanently delete event.')
       }
     }
   })
