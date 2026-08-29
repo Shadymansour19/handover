@@ -46,24 +46,17 @@ export async function updateMaintenanceRecord(id, fields) {
   return data
 }
 
-// Soft delete: sets deleted_at rather than issuing a real DELETE (see
-// SPEC.md "Delete behavior" decision) — RLS only grants UPDATE, not DELETE.
-//
-// .select() here is required for correctness, not just convenience: if RLS
-// blocks the update (not the owner, not admin), PostgREST matches 0 rows
-// and returns a plain success with no error — silently doing nothing. The
-// UI already disables Delete for records you can't touch, but this is the
-// difference between failing loudly and failing invisibly if that's ever
-// bypassed (stale state, direct API call, etc).
+// Soft delete goes through an RPC (SECURITY DEFINER function), not a plain
+// client-side UPDATE — see 20260830050000_soft_delete_rpc.sql for why: a
+// direct UPDATE setting deleted_at always fails RLS, for every user
+// including admins, because Postgres implicitly re-checks the table's
+// SELECT policy (`deleted_at IS NULL`) against the row an UPDATE would
+// produce. The RPC bypasses RLS internally and does its own authorization
+// check (same own-record-or-admin rule) instead.
 export async function softDeleteMaintenanceRecord(id) {
-  const { data, error } = await supabase
-    .from('maintenance_records')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-    .select('id')
+  const { error } = await supabase.rpc('soft_delete_maintenance_record', {
+    record_id: id,
+  })
 
   if (error) throw error
-  if (!data || data.length === 0) {
-    throw new Error('Record not found, or you do not have permission to delete it.')
-  }
 }
