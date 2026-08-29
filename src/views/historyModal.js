@@ -130,7 +130,7 @@ export async function openHistoryModal({
           <col class="col-history-actions" />
         </colgroup>
         <thead>
-          <tr><th>Timestamp</th><th>Action</th><th>By</th><th>Comment</th><th>Actions</th></tr>
+          <tr><th>Timestamp</th><th>Action</th><th>By</th><th>Comment</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>

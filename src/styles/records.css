@@ -54,7 +54,7 @@
 }
 
 .col-scope {
-  width: 60%;
+  width: 59%;
 }
 
 .col-status {
@@ -68,7 +68,7 @@
    arbitrary round percentage, since table-layout: fixed cells don't grow
    to fit an overflowing button; the width freed up went to col-scope. */
 .col-actions {
-  width: 5%;
+  width: 6%;
 }
 
 /* History modal's table — different columns, same table-layout: fixed
@@ -86,11 +86,14 @@
 }
 
 .col-history-comment {
-  width: 32%;
+  width: 38%;
 }
 
+/* Same reasoning as .col-actions/.col-users-actions above — no header
+   label, trimmed to the ⋮ button's own footprint; the width freed up went
+   to col-history-comment. */
 .col-history-actions {
-  width: 12%;
+  width: 6%;
 }
 
 .records-table th,
@@ -122,7 +125,7 @@
 }
 
 .col-users-email {
-  width: 39%;
+  width: 38%;
 }
 
 .col-users-role {
@@ -140,7 +143,7 @@
    round percentage, since table-layout: fixed cells don't grow to fit an
    overflowing button; the width freed up went to email. */
 .col-users-actions {
-  width: 5%;
+  width: 6%;
 }
 
 .deleted-tag {
@@ -154,8 +157,8 @@
   /* Cuts into the general td padding (0.5rem both sides above) since the
      column itself is now trimmed to the ⋮ button's footprint — full
      padding on both sides would eat most of that width back up. */
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding-left: 0.1rem;
+  padding-right: 0.1rem;
 }
 
 .row-menu {
@@ -166,9 +169,9 @@
 .row-menu__trigger {
   /* Trimmed from 0.7rem horizontal — the actions column itself was
      narrowed right down to this button's footprint (col-actions/
-     col-users-actions above), so the button needs to be as slim as it can
-     stay comfortably tappable. */
-  padding: 0.3rem 0.4rem;
+     col-users-actions/col-history-actions above), so the button needs to
+     be as slim as it can stay comfortably tappable. */
+  padding: 0.3rem 0.25rem;
   font-size: 1.1rem;
   line-height: 1;
 }
