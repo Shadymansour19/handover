@@ -8,6 +8,7 @@ import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { openModal } from '../lib/modal.js'
 import { formatDateTimeDMY } from '../lib/dateFormat.js'
+import { renderBulletList } from '../lib/bullets.js'
 import { openOperationEventModal } from './operationEventModal.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
@@ -26,6 +27,16 @@ export async function openHistoryModal({
 }) {
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
+
+  // Shared by the table row render and the View modal, so the label logic
+  // (same direction-aware Swap wording as docxExport.js/pdfExport.js —
+  // duplicated there too, one per rendering target) only lives once here.
+  function operationActionLabel(event) {
+    const isSecondarySide = event.secondary_equipment_id === equipment.id
+    if (isSecondarySide) return `Swap ← ${nameOf(event.equipment_id)}`
+    if (event.action === 'Swap') return `Swap → ${nameOf(event.secondary_equipment_id)}`
+    return event.action
+  }
 
   const { modalEl, close, onClose } = openModal(
     `
@@ -63,12 +74,7 @@ export async function openHistoryModal({
 
     const rows = events
       .map((event) => {
-        const isSecondarySide = event.secondary_equipment_id === equipment.id
-        const actionLabel = isSecondarySide
-          ? `Swap ← ${escapeHTML(nameOf(event.equipment_id))}`
-          : event.action === 'Swap'
-            ? `Swap → ${escapeHTML(nameOf(event.secondary_equipment_id))}`
-            : escapeHTML(event.action)
+        const actionLabel = escapeHTML(operationActionLabel(event))
 
         const isDeleted = Boolean(event.deleted_at)
         const canEdit = isAdmin || event.created_by === userId
@@ -80,15 +86,18 @@ export async function openHistoryModal({
 
         // Deleted events only ever reach here for an admin (RLS hides them
         // from everyone else) — same shape as the maintenance table's
-        // deleted-row menu: no Edit, just Restore/Delete forever.
+        // deleted-row menu: no Edit, just Restore/Delete forever. View is
+        // available either way, same as the maintenance table.
         const menuItems = isDeleted
           ? [
+              { action: 'view', icon: ICONS.view, label: 'View' },
               isAdmin ? { action: 'restore', icon: ICONS.restore, label: 'Restore' } : null,
               isAdmin
                 ? { action: 'hard-delete', icon: ICONS.delete, label: 'Delete forever' }
                 : null,
             ].filter(Boolean)
           : [
+              { action: 'view', icon: ICONS.view, label: 'View' },
               { action: 'edit', icon: ICONS.edit, label: 'Edit', attrs: disabledAttrs },
               { action: 'delete', icon: ICONS.delete, label: 'Delete', attrs: disabledAttrs },
             ]
@@ -198,7 +207,13 @@ export async function openHistoryModal({
     const record = currentEvents.find((e) => e.id === button.dataset.eventId)
     if (!record) return
 
-    if (button.dataset.action === 'edit') {
+    if (button.dataset.action === 'view') {
+      openViewOperationEventModal({
+        event: record,
+        actionLabel: operationActionLabel(record),
+        createdByName: profileNames.get(record.created_by) ?? '—',
+      })
+    } else if (button.dataset.action === 'edit') {
       openOperationEventModal({
         mode: 'edit',
         record,
@@ -246,4 +261,25 @@ export async function openHistoryModal({
   })
 
   await load()
+}
+
+// Read-only — same `.record-details` dt/dl convention as
+// viewRecordModal.js. Exists mainly for mobile, where the history table
+// hides Timestamp/Comment to fit the remaining columns (see records.css);
+// this is where those fields are still reachable from.
+function openViewOperationEventModal({ event, actionLabel, createdByName }) {
+  const { modalEl, close } = openModal(`
+    <h2>Operation Event</h2>
+    <dl class="record-details">
+      <dt>Timestamp</dt><dd>${escapeHTML(formatDateTimeDMY(event.event_timestamp))}</dd>
+      <dt>Action</dt><dd>${actionLabel}</dd>
+      <dt>By</dt><dd>${escapeHTML(createdByName)}</dd>
+      <dt>Comment</dt><dd>${renderBulletList(event.comment)}</dd>
+    </dl>
+    <div class="modal-actions">
+      <button type="button" id="view-event-close">Close</button>
+    </div>
+  `)
+
+  modalEl.querySelector('#view-event-close').addEventListener('click', close)
 }

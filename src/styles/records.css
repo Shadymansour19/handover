@@ -133,11 +133,28 @@
   width: 6%;
 }
 
-/* Same actions-column overflow fix as .equipment-records-table above —
-   scoped to `.history-table` (historyModal.js). */
+/* Mobile: drop Timestamp and Comment (nth-child 1 and 4) from the History
+   dialog entirely — Action/By identify an event at a glance, and the rest
+   (including the full Comment text) is one tap away via the new "View"
+   action (openViewOperationEventModal, historyModal.js). Actions is
+   bumped to 12% for the same overflow reason as .equipment-records-table/
+   .users-table above. */
 @media (max-width: 600px) {
-  .history-table .col-history-comment {
-    width: 32%;
+  .history-table col.col-history-timestamp,
+  .history-table th:nth-child(1),
+  .history-table td:nth-child(1),
+  .history-table col.col-history-comment,
+  .history-table th:nth-child(4),
+  .history-table td:nth-child(4) {
+    display: none;
+  }
+
+  .history-table .col-history-action {
+    width: 44%;
+  }
+
+  .history-table .col-history-by {
+    width: 44%;
   }
 
   .history-table .col-history-actions {
@@ -212,11 +229,11 @@
   }
 
   .users-table .col-users-username {
-    width: 20%;
+    width: 26%;
   }
 
   .users-table .col-users-fullname {
-    width: 46%;
+    width: 40%;
   }
 
   .users-table .col-users-role {

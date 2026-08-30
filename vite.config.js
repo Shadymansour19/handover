@@ -17,6 +17,14 @@ export default defineConfig({
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
+        // Explicit, not just relying on the spec's documented default —
+        // leaving `orientation` out entirely is what caused rotation to
+        // work fine in the plain mobile-browser tab (which doesn't apply
+        // manifest orientation at all) but not once installed/launched as
+        // a standalone app: several Android WebAPK/Chrome versions lock
+        // installed PWAs to the orientation at install time rather than
+        // actually defaulting to "any" when the field is simply absent.
+        orientation: 'any',
         start_url: '/',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

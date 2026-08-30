@@ -11,8 +11,10 @@ export function openFilterModal({ from, to, includeDeleted, isAdmin, onApply }) 
   const { modalEl, close } = openModal(`
     <h2>Filter Records</h2>
     <form id="filter-form" class="record-form">
-      <label>From <input type="date" id="filter-from" value="${from}" required /></label>
-      <label>To <input type="date" id="filter-to" value="${to}" required /></label>
+      <div class="form-row">
+        <label>From <input type="date" id="filter-from" value="${from}" required /></label>
+        <label>To <input type="date" id="filter-to" value="${to}" required /></label>
+      </div>
       ${
         isAdmin
           ? `<label class="checkbox-label">

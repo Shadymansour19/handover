@@ -24,6 +24,27 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-08-30) — refinement batch 2
+
+- **Installed app wouldn't rotate, the plain browser tab did**: the
+  manifest never set `orientation` at all — the spec's documented default
+  for an absent field is "any" (no lock), but several Android
+  WebAPK/Chrome versions don't actually honor that and lock a standalone-
+  display PWA to whatever orientation it was in at install time instead.
+  Fixed by setting `orientation: 'any'` explicitly (`vite.config.js`)
+  rather than relying on the unstated default. **Needs a fresh
+  install to take effect** on a device that already added the old
+  manifest to its home screen — removing and re-adding it (or waiting for
+  Android's own WebAPK update check) picks up the new manifest; a plain
+  page reload doesn't.
+- **Filter dialog**: From/To also moved onto one row (`.form-row`,
+  matching the record dialog's Start/End date change above).
+- **History dialog gets a "View" action** (`openViewOperationEventModal`),
+  same reasoning and `.record-details` convention as Manage Users' new
+  View action above. Mobile: History now hides Timestamp and Comment
+  (keeps Action/By/Actions) — same "hide it, reach it via View" pattern
+  as Manage Users' Email/Status.
+
 ## Decision (2026-08-30) — post-Phase-6 refinement batch
 
 First batch after closing out PLAN.md's phases (see PLAN.md's status
