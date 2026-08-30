@@ -91,7 +91,12 @@
 @media (max-width: 600px) {
   .equipment-records-table col.col-start-date,
   .equipment-records-table th:nth-child(1),
-  .equipment-records-table td:nth-child(1) {
+  /* :not(.no-records) matters here: the "No records in range" placeholder
+     row (recordsTable.js) is a single `<td colspan="4">`, which is also
+     that row's first-and-only child — without this exclusion, hiding
+     "the first cell of every row" hid the entire placeholder message on
+     mobile instead of just the Start date cell of a real data row. */
+  .equipment-records-table td:nth-child(1):not(.no-records) {
     display: none;
   }
 
