@@ -24,6 +24,40 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-08-30) — post-Phase-6 refinement batch
+
+First batch after closing out PLAN.md's phases (see PLAN.md's status
+note) — mobile-usability fixes found by real-device testing, plus a couple
+of small feature additions:
+
+- **Password fields get an explicit show/hide toggle everywhere**
+  (`lib/passwordToggle.js`, used by login/change-password/admin
+  create-user/set-password): a native browser reveal icon isn't reliable
+  across mobile browsers — desktop Chrome/Edge often show one, but mobile
+  Chrome only under certain conditions/settings, and iOS Safari doesn't
+  show one for an arbitrary password field at all — which is why one
+  wasn't showing up on mobile despite every field being a normal
+  `type="password"` input.
+- **Mobile: the ⋮ action button was overflowing past the table's right
+  edge** on all three tables (records/users/history) — `table-layout:
+  fixed` cells don't grow to fit content, and the button's fixed
+  1.75rem/28px size no longer fit inside a 6%-wide column once the
+  table's own width shrank to a phone's usable width. Bumped the actions
+  column to 12% in each table's mobile media query (records.css) —
+  confirmed by arithmetic against a ~320px worst-case phone width, not
+  just visually assumed fixed.
+- **Manage Users, mobile**: hides Email and Status (keeps
+  Username/Full name/Role) for the same reason the main records table
+  already hides Start date on mobile — not enough width for every column.
+  Added a "View" action (`openViewUserModal`) to reach the hidden fields,
+  same `.record-details` read-only convention as `viewRecordModal.js`.
+- **Header hamburger menu width**: reuses `.row-menu__dropdown`'s
+  150px min-width, sized for the per-row menu's short items — bumped to
+  200px for `#user-menu-dropdown` specifically (by id, not by raising the
+  shared class) so "Manage Users"/"Change Password" don't wrap.
+- **Record dialog**: Start date/End date moved onto one row (`.form-row`,
+  modal.css) instead of stacked, to save vertical space.
+
 ## Decisions made (2026-08-30) — user management
 
 | Question | Decision | Why / implication |

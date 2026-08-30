@@ -1,6 +1,8 @@
 import { fetchUsers, updateProfile, createUser, setUserPassword, deleteUser } from '../data/users.js'
 import { escapeHTML } from '../lib/html.js'
 import { openModal } from '../lib/modal.js'
+import { passwordFieldHTML, initPasswordToggles } from '../lib/passwordToggle.js'
+import { ICONS } from '../lib/icons.js'
 
 // Admin-only screen: list every user (list_users() RPC — checks admin
 // status itself), create a new one, edit role/username/full name/active
@@ -59,10 +61,11 @@ export async function openManageUsersModal({ currentUserId }) {
                 <button type="button" class="row-menu__trigger" data-action="toggle-menu"
                         data-user-id="${user.id}" aria-label="Actions" aria-haspopup="true">⋮</button>
                 <div class="row-menu__dropdown" hidden>
-                  <button data-action="edit" data-user-id="${user.id}">Edit</button>
-                  <button data-action="set-password" data-user-id="${user.id}">Set password</button>
+                  <button data-action="view" data-user-id="${user.id}">${ICONS.view} View</button>
+                  <button data-action="edit" data-user-id="${user.id}">${ICONS.edit} Edit</button>
+                  <button data-action="set-password" data-user-id="${user.id}">${ICONS.lock} Set password</button>
                   <button data-action="delete" data-user-id="${user.id}"
-                          ${isSelf ? 'disabled title="You can\'t delete your own account"' : ''}>Delete</button>
+                          ${isSelf ? 'disabled title="You can\'t delete your own account"' : ''}>${ICONS.delete} Delete</button>
                 </div>
               </div>
             </td>
@@ -134,7 +137,9 @@ export async function openManageUsersModal({ currentUserId }) {
     const user = currentUsers.find((u) => u.id === button.dataset.userId)
     if (!user) return
 
-    if (button.dataset.action === 'edit') {
+    if (button.dataset.action === 'view') {
+      openViewUserModal({ user })
+    } else if (button.dataset.action === 'edit') {
       openEditUserModal({ user, isSelf: user.id === currentUserId, onSaved: load })
     } else if (button.dataset.action === 'set-password') {
       openSetPasswordModal({ user })
@@ -150,6 +155,28 @@ export async function openManageUsersModal({ currentUserId }) {
   await load()
 }
 
+// Read-only — same `.record-details` dt/dl convention as
+// viewRecordModal.js. Exists mainly for mobile, where the users table
+// hides Email/Status to fit the remaining columns (see records.css); this
+// is where those fields are still reachable from.
+function openViewUserModal({ user }) {
+  const { modalEl, close } = openModal(`
+    <h2>View User — ${escapeHTML(user.username)}</h2>
+    <dl class="record-details">
+      <dt>Username</dt><dd>${escapeHTML(user.username)}</dd>
+      <dt>Full name</dt><dd>${escapeHTML(user.full_name ?? '—')}</dd>
+      <dt>Email</dt><dd>${escapeHTML(user.email)}</dd>
+      <dt>Role</dt><dd>${escapeHTML(user.role)}</dd>
+      <dt>Status</dt><dd>${user.is_active ? 'Active' : 'Inactive'}</dd>
+    </dl>
+    <div class="modal-actions">
+      <button type="button" id="view-user-close">Close</button>
+    </div>
+  `)
+
+  modalEl.querySelector('#view-user-close').addEventListener('click', close)
+}
+
 function openCreateUserModal({ onSaved }) {
   const { modalEl, close } = openModal(`
     <h2>Add User</h2>
@@ -158,7 +185,7 @@ function openCreateUserModal({ onSaved }) {
         <input type="email" id="field-email" required />
       </label>
       <label>Password
-        <input type="password" id="field-password" required minlength="6" />
+        ${passwordFieldHTML('<input type="password" id="field-password" required minlength="6" />')}
       </label>
       <label>Username
         <input type="text" id="field-username" required />
@@ -180,6 +207,7 @@ function openCreateUserModal({ onSaved }) {
     </form>
   `)
 
+  initPasswordToggles(modalEl)
   modalEl.querySelector('#create-user-cancel').addEventListener('click', close)
 
   const form = modalEl.querySelector('#create-user-form')
@@ -282,10 +310,10 @@ function openSetPasswordModal({ user }) {
     <h2>Set Password — ${escapeHTML(user.username)}</h2>
     <form id="set-password-form" class="record-form">
       <label>New password
-        <input type="password" id="field-password" required minlength="6" />
+        ${passwordFieldHTML('<input type="password" id="field-password" required minlength="6" />')}
       </label>
       <label>Confirm new password
-        <input type="password" id="field-confirm-password" required minlength="6" />
+        ${passwordFieldHTML('<input type="password" id="field-confirm-password" required minlength="6" />')}
       </label>
       <p id="set-password-error" class="status status--error" hidden></p>
       <p id="set-password-success" class="status status--success" hidden></p>
@@ -296,6 +324,7 @@ function openSetPasswordModal({ user }) {
     </form>
   `)
 
+  initPasswordToggles(modalEl)
   modalEl.querySelector('#set-password-cancel').addEventListener('click', close)
 
   const form = modalEl.querySelector('#set-password-form')

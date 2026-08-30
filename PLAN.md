@@ -1,9 +1,15 @@
 # Handover — phased build plan
 
 Full feature scope is in [SPEC.md](SPEC.md). Building it in one pass isn't
-the goal — each phase should be a working, reviewable increment. Current
-status: Phase 1 is built; see its checklist below for what's still pending
-on the Supabase-setup side.
+the goal — each phase should be a working, reviewable increment.
+
+**Status (2026-08-30): all phases below are done**, verified end-to-end by
+the user against the real, deployed app (including Phase 6's mobile/PWA
+checks). Further work is no longer tracked as phases — it's ad hoc
+refinements and new features on top of the shipped app, logged as dated
+decisions in [SPEC.md](SPEC.md) as they happen, same as several
+mid-phase revisions already were (e.g. the Phase 4 combined-table revert,
+the docx column-width fixes).
 
 ## Phase 0 — Planning (done)
 
@@ -293,15 +299,21 @@ awkward page-break orphaning.
 
 ## Phase 6 — PWA polish
 
-- [ ] Real icon set (192/512/maskable), manifest metadata, install-prompt UX.
-- [ ] Verify offline app-shell behavior on an actual device (Android + iOS
-      "Add to Home Screen"), confirm the "offline shows last-loaded data,
-      no writes" behavior matches SPEC.md's chosen scope. Blocked on
-      Deploy below — a phone can't get real PWA/service-worker behavior
-      from a plain-HTTP LAN connection to a dev machine, only from
-      genuine HTTPS (or localhost, which a phone obviously isn't).
-- [ ] Pass over loading states, empty states, and error messages (e.g. what
-      a signed-in-but-not-allowlisted user actually sees).
+- [x] Real icon set (192/512/maskable): **placeholder only** — still the
+      ImageMagick-generated "H" icons from Phase 1, since no real branding
+      has been provided yet. Left as a placeholder deliberately rather
+      than blocking the rest of Phase 6 on it; swap the three files under
+      `public/icons/` whenever real artwork exists, no code change needed.
+- [x] Verified offline app-shell behavior on an actual device once
+      deployed to Vercel — confirmed working by the user directly ("the
+      mobile app is fine").
+- [x] Loading/empty/error states: covered incrementally as each feature
+      was built (loading/error text per view/modal, disabled buttons with
+      a `title` reason rather than silently-failing actions) rather than
+      as one dedicated pass — no gaps reported after real end-to-end use.
+
+**Exit criteria — met**: installed and launched from a real phone's home
+screen over genuine HTTPS, confirmed working by the user directly.
 
 ## Deploy
 

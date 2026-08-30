@@ -48,6 +48,8 @@ handover/
     │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and
     │   │                       # header menu's larger ones (plus/filter/export/pdf/dots/menu/...)
     │   ├── modal.js            # openModal(): overlay/close/escape-key + onClose() cleanup hook
+    │   ├── passwordToggle.js   # shared show/hide markup + wiring for every password field — a
+    │   │                       # native browser reveal icon isn't reliable across mobile browsers
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
     │   │                       # built for Phase 4's main-table attempt (since reverted), kept for

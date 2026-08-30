@@ -45,12 +45,14 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       <label>Equipment
         <select id="field-equipment" required></select>
       </label>
-      <label>Start date
-        <input type="date" id="field-start-date" value="${initial.start_date}" required />
-      </label>
-      <label>End date
-        <input type="date" id="field-end-date" value="${initial.end_date ?? ''}" disabled />
-      </label>
+      <div class="form-row">
+        <label>Start date
+          <input type="date" id="field-start-date" value="${initial.start_date}" required />
+        </label>
+        <label>End date
+          <input type="date" id="field-end-date" value="${initial.end_date ?? ''}" disabled />
+        </label>
+      </div>
       <label>Work scope
         <input type="text" id="field-work-scope" value="${escapeHTML(initial.work_scope)}" required />
       </label>

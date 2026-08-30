@@ -3,11 +3,12 @@
 Industrial work-permit and equipment-tracking tool for an oil & gas facility,
 migrating from Google Apps Script to Supabase + a static PWA.
 
-**Status**: Phases 1–5 (auth, Maintenance CRUD, operation tracking,
-date-range display, user management, `.docx` export) are verified
-end-to-end, including opening real exported files in Word. Next up: Phase
-6 (PWA polish), which needs a real deploy first — see
-[PLAN.md](PLAN.md) "Deploy".
+**Status**: deployed and in use. All phases in [PLAN.md](PLAN.md) (auth,
+Maintenance CRUD, operation tracking, date-range display, user management,
+`.docx`/`.pdf` export, PWA polish) are done and verified end-to-end,
+including on a real phone over HTTPS. Further work is tracked as ad hoc
+refinements/new features (see [SPEC.md](SPEC.md)'s dated decision log),
+not phases.
 
 ## Reference docs
 

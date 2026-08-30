@@ -1,3 +1,5 @@
+import { passwordFieldHTML, initPasswordToggles } from '../lib/passwordToggle.js'
+
 export function renderLoginView(container, { onSignIn }) {
   container.innerHTML = `
     <div class="login-screen">
@@ -11,18 +13,22 @@ export function renderLoginView(container, { onSignIn }) {
           autocomplete="username"
           required
         />
-        <input
-          type="password"
-          id="login-password"
-          placeholder="Password"
-          autocomplete="current-password"
-          required
-        />
+        ${passwordFieldHTML(`
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
+        `)}
         <button type="submit">Sign in</button>
       </form>
       <p id="login-status" class="status" hidden></p>
     </div>
   `
+
+  initPasswordToggles(container)
 
   const form = container.querySelector('#login-form')
   const status = container.querySelector('#login-status')

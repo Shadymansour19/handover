@@ -56,3 +56,45 @@ button:disabled {
 .error {
   color: var(--error);
 }
+
+/* Password fields (login, change password, admin set/create password) —
+   see lib/passwordToggle.js. A built-in browser reveal icon isn't reliable
+   across mobile browsers, so every password field gets an explicit toggle
+   button instead, wrapped in this shared markup/style. */
+.password-field {
+  position: relative;
+  display: flex;
+}
+
+/* `input[type]` (not just `input`) bumps specificity to safely beat
+   .login-form/.record-form's own `input { padding: ... }` shorthand rules
+   regardless of CSS import order — those are the same class+type
+   specificity as a bare `.password-field input` would be, and being
+   defined later would otherwise win and silently reset padding-right,
+   letting the toggle button overlap the field's text. */
+.password-field input[type] {
+  flex: 1;
+  min-width: 0;
+  padding-right: 2.2rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.password-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--text);
+}

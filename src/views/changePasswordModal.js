@@ -1,18 +1,19 @@
 import { changeOwnPassword } from '../data/users.js'
 import { openModal } from '../lib/modal.js'
+import { passwordFieldHTML, initPasswordToggles } from '../lib/passwordToggle.js'
 
 export function openChangePasswordModal({ email }) {
   const { modalEl, close } = openModal(`
     <h2>Change Password</h2>
     <form id="change-password-form" class="record-form">
       <label>Current password
-        <input type="password" id="field-current-password" autocomplete="current-password" required />
+        ${passwordFieldHTML('<input type="password" id="field-current-password" autocomplete="current-password" required />')}
       </label>
       <label>New password
-        <input type="password" id="field-new-password" autocomplete="new-password" required minlength="6" />
+        ${passwordFieldHTML('<input type="password" id="field-new-password" autocomplete="new-password" required minlength="6" />')}
       </label>
       <label>Confirm new password
-        <input type="password" id="field-confirm-password" autocomplete="new-password" required minlength="6" />
+        ${passwordFieldHTML('<input type="password" id="field-confirm-password" autocomplete="new-password" required minlength="6" />')}
       </label>
       <p id="change-password-error" class="status status--error" hidden></p>
       <p id="change-password-success" class="status status--success" hidden></p>
@@ -22,6 +23,8 @@ export function openChangePasswordModal({ email }) {
       </div>
     </form>
   `)
+
+  initPasswordToggles(modalEl)
 
   const form = modalEl.querySelector('#change-password-form')
   const errorEl = modalEl.querySelector('#change-password-error')

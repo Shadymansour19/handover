@@ -36,6 +36,16 @@
   width: auto;
 }
 
+/* The header hamburger's dropdown reuses .row-menu__dropdown (records.css)
+   — its 150px min-width fits the row-menu's own short single-word items
+   (View/Edit/Delete) fine, but wraps "Manage Users"/"Change Password"
+   here. Targeted by #id (beats the shared class on specificity) rather
+   than raising the shared min-width itself, which would widen every
+   per-row menu in the app for no reason. */
+#user-menu-dropdown {
+  min-width: 200px;
+}
+
 /* column-reverse makes the FIRST DOM child sit at the bottom (main-start)
    and later ones stack upward from there — so mainView.js must render
    #fab-toggle before #fab-actions (not the other way around) for the

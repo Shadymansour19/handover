@@ -80,7 +80,14 @@
    both the <col> and the nth-child(1) cells is needed together: table-
    layout: fixed maps columns from the <colgroup>, and browsers only
    collapse a column's width and re-flow the remaining cells when both
-   agree it's gone. */
+   agree it's gone.
+   Actions is also bumped up here (6% -> 12%): at a typical phone's usable
+   table width (viewport minus #app's padding), 6% comes out narrower than
+   the ⋮ button's own fixed 1.75rem/28px size, so the button was visibly
+   poking out past the table's right edge instead of sitting inside its
+   cell — reported directly on a real device. 12% comfortably clears it
+   even on a ~320px-wide phone. Same fix applied to .users-table and
+   .history-table below. */
 @media (max-width: 600px) {
   .equipment-records-table col.col-start-date,
   .equipment-records-table th:nth-child(1),
@@ -89,11 +96,15 @@
   }
 
   .equipment-records-table .col-scope {
-    width: 60%;
+    width: 59%;
   }
 
   .equipment-records-table .col-status {
-    width: 30%;
+    width: 29%;
+  }
+
+  .equipment-records-table .col-actions {
+    width: 12%;
   }
 }
 
@@ -120,6 +131,18 @@
    to col-history-comment. */
 .col-history-actions {
   width: 6%;
+}
+
+/* Same actions-column overflow fix as .equipment-records-table above —
+   scoped to `.history-table` (historyModal.js). */
+@media (max-width: 600px) {
+  .history-table .col-history-comment {
+    width: 32%;
+  }
+
+  .history-table .col-history-actions {
+    width: 12%;
+  }
 }
 
 .records-table th,
@@ -170,6 +193,39 @@
    overflowing button; the width freed up went to email. */
 .col-users-actions {
   width: 6%;
+}
+
+/* Mobile: drop Email and Status (nth-child 3 and 5) from the users table
+   entirely — Username/Full name/Role are enough to identify someone at a
+   glance on a phone, and the rest is one tap away via the new "View"
+   action (openViewUserModal, manageUsersModal.js). Actions is bumped to
+   12% for the same reason as .equipment-records-table above — 6% doesn't
+   clear the ⋮ button's own fixed size on a phone-width table. */
+@media (max-width: 600px) {
+  .users-table col.col-users-email,
+  .users-table th:nth-child(3),
+  .users-table td:nth-child(3),
+  .users-table col.col-users-status,
+  .users-table th:nth-child(5),
+  .users-table td:nth-child(5) {
+    display: none;
+  }
+
+  .users-table .col-users-username {
+    width: 20%;
+  }
+
+  .users-table .col-users-fullname {
+    width: 46%;
+  }
+
+  .users-table .col-users-role {
+    width: 22%;
+  }
+
+  .users-table .col-users-actions {
+    width: 12%;
+  }
 }
 
 .deleted-tag {

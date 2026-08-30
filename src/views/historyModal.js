@@ -121,7 +121,7 @@ export async function openHistoryModal({
       .join('')
 
     return `
-      <table class="records-table">
+      <table class="records-table history-table">
         <colgroup>
           <col class="col-history-timestamp" />
           <col class="col-history-action" />
