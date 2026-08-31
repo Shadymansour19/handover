@@ -182,9 +182,33 @@ through correctly, before ever wiring it into the UI.
 
 One accepted gap versus the `.docx` export: pdfmake has no equivalent of
 `keepNext`/`tableHeader`'s page-break protections (an equipment header
-orphaned alone at the bottom of a page, or a table header separated from
-its first data row) — not chased further for this first pass; revisit if
-it's actually seen happening on a real multi-page export.
+orphaned alone at the bottom of a page). **Investigated properly on
+2026-08-30** after the user hit it for real (also reported: the system
+banner rendering as unreadable white-on-white — a real bug, `fillColor`
+used on a plain text node instead of `background`; `fillColor` only
+applies inside a table cell, so it was silently ignored. Fixed. The
+earlier `pdftotext`-based verification only checked text content, not
+visual legibility — a real gap in that check).
+
+For the orphaning gap, both of pdfmake's "keep together" primitives were
+tried and both turned out to be unsafe, confirmed by directly generating
+and rendering test PDFs (not just reasoning about the API):
+
+- `unbreakable: true` on a stack (header+table together): if the stack
+  doesn't fit in the *remaining* space on the current page, pdfmake
+  doesn't retry it on a fresh page — it **silently drops the entire
+  stack**. A 25-row equipment table's whole banner+header+table section
+  vanished from a real generated PDF.
+- `table.dontBreakRows: true` (keep each row whole): same failure mode
+  one level down — an oversized single row (long bullets) was **silently
+  dropped** from the table entirely rather than pushed to the next page.
+
+Given that, the header-orphaning cosmetic gap is being kept rather than
+"fixed" with either mechanism — a header occasionally sitting alone at
+the bottom of a page is a real but minor readability issue; silently
+missing records from an official handover document is not an acceptable
+trade for fixing it. Table headers still repeat correctly via
+`headerRows: 1`, which doesn't have this failure mode.
 
 Also: `lib/downloadBlob.js` was split out of `docxExport.js` (which
 previously defined and exported it) into its own zero-dependency file, so

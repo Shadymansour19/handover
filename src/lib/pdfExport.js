@@ -129,12 +129,26 @@ function systemBanner(name) {
     bold: true,
     color: 'white',
     fontSize: 13,
-    fillColor: SYSTEM_BANNER_FILL,
+    // `background`, not `fillColor` — fillColor only paints table-cell
+    // backgrounds (which is why TABLE_HEADER_FILL above, used inside a
+    // table cell, worked fine); on a plain text node it's silently
+    // ignored, so this rendered as unfilled white text on white
+    // (unreadable) rather than white-on-dark. `pdftotext`-based
+    // verification earlier only checked the text content came through,
+    // not that it was visually legible — a real gap in that check.
+    background: SYSTEM_BANNER_FILL,
     margin: [4, 5, 4, 5],
-    // pdfmake has no direct "keep with next" across two different content
-    // blocks (unlike docx's keepNext) — accepted as a known gap versus the
-    // .docx export rather than chased further for a first pass; revisit if
-    // an equipment header is actually seen orphaned at a page break.
+    // No keep-with-next here (unlike docx's keepNext on the equivalent
+    // banner/header) — pdfmake's only "keep together" primitive is
+    // `unbreakable: true` on a stack, and it was tried and reverted: wrap
+    // a header with its table in one unbreakable stack and, if that stack
+    // doesn't fit in the *remaining* space on the current page, pdfmake
+    // doesn't retry it on a fresh page — it silently drops the entire
+    // stack. Verified directly: a 25-row table's whole system banner +
+    // equipment section vanished from a real generated PDF, not just a
+    // theoretical concern. An occasional orphaned header is a real,
+    // accepted gap versus the .docx export, but strictly preferable to
+    // that.
   }
 }
 
