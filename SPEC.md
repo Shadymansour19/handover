@@ -203,12 +203,13 @@ and rendering test PDFs (not just reasoning about the API):
   one level down — an oversized single row (long bullets) was **silently
   dropped** from the table entirely rather than pushed to the next page.
 
-Given that, the header-orphaning cosmetic gap is being kept rather than
-"fixed" with either mechanism — a header occasionally sitting alone at
-the bottom of a page is a real but minor readability issue; silently
+Given that, the header-orphaning cosmetic gap was initially kept rather
+than "fixed" with either mechanism — a header occasionally sitting alone
+at the bottom of a page is a real but minor readability issue; silently
 missing records from an official handover document is not an acceptable
 trade for fixing it. Table headers still repeat correctly via
-`headerRows: 1`, which doesn't have this failure mode.
+`headerRows: 1`, which doesn't have this failure mode. **Superseded below
+(2026-08-31)** — the gap was later closed properly, with a cap.
 
 Also: `lib/downloadBlob.js` was split out of `docxExport.js` (which
 previously defined and exported it) into its own zero-dependency file, so
@@ -220,6 +221,30 @@ chunks (docx included, not just the new pdfmake one): pdfmake plus its
 bundled font set is ~1.7MB, and neither export library needs to be
 precached for offline use — exporting already requires a live Supabase
 fetch of fresh data regardless of what the service worker has cached.
+
+## Decision (2026-08-31) — pdf keep-with-next fixed properly, with a cap
+
+Revisits the note directly above, after the user hit the orphaning gap for
+real ("equipment header on one page, its table on the next"). Retested
+`unbreakable: true` more precisely this time: a small header+table stack
+pushed near a page boundary (but that fits comfortably on one page) *was*
+handled correctly — moved cleanly to the next page, nothing lost. The
+earlier finding was real but narrower than first stated: `unbreakable`
+only drops content when the stack is taller than a full page, not
+whenever it doesn't fit in the *remaining* space (which is the normal,
+common case).
+
+So: `equipmentHeader` + its table (and the system banner, riding along
+with the first equipment) are now wrapped `unbreakable: true`, but only
+when the equipment's timeline has `MAX_ROWS_FOR_KEEP_TOGETHER` (6) rows or
+fewer — a deliberately conservative, rough proxy for "small enough to
+safely assume it fits one page" (most real usage does, given the app's
+default "last 7 days" filter). Above that cap, header+table fall back to
+the old plain sequential rendering — occasionally an orphaned header, but
+never a dropped record. Verified directly with three generated-and-
+rendered test PDFs: several small equipment blocks correctly kept
+together across page boundaries, and a 30-row table (over the cap)
+rendered with all 30 records and its own header intact, no data loss.
 
 ## Decision (2026-08-30) — main view toolbar redesign: FAB cluster + hamburger menu
 

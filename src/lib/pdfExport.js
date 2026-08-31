@@ -25,6 +25,24 @@ const TITLE_FONT_SIZE = 22
 const SYSTEM_BANNER_FONT_SIZE = 16
 const EQUIPMENT_HEADER_FONT_SIZE = 13
 
+// Used below to decide when it's safe to bundle an equipment header with
+// its table as one `unbreakable: true` stack (pdfmake's only real "keep
+// together" primitive, and the only way to stop a header/table pair from
+// landing on two different pages — there's no per-element keepNext like
+// docx's). It's capped, not unconditional, because `unbreakable` was
+// directly verified to be unsafe for a block taller than one page: if it
+// doesn't fit even on a fresh page, pdfmake doesn't fall back to breaking
+// it — it silently drops the entire stack (confirmed with a real 25-row
+// table: the whole banner+header+table section vanished from a generated
+// PDF). A small block, by contrast, was directly verified to behave
+// correctly: pushed to a matching page it fits on, nothing lost.
+// This row count is a conservative, intentionally-rough proxy for "small
+// enough to safely assume it fits on one page" — most real usage (the
+// app's default filter is "last 7 days") comfortably falls under it.
+// Above the cap, header+table fall back to plain sequential rendering:
+// occasionally an orphaned header, never a dropped record.
+const MAX_ROWS_FOR_KEEP_TOGETHER = 6
+
 // Date | Scope | Status — same proportions as docxExport.js's
 // COLUMN_WIDTHS (scope carries work_scope/detailed_steps/comment, or the
 // action + comment for an operation event, bulleted together, so it needs
@@ -156,17 +174,6 @@ function systemBanner(name) {
     },
     layout: BANNER_LAYOUT,
     margin: [0, 8, 0, 6],
-    // No keep-with-next here (unlike docx's keepNext on the equivalent
-    // banner/header) — pdfmake's only "keep together" primitive is
-    // `unbreakable: true` on a stack, and it was tried and reverted: wrap
-    // a header with its table in one unbreakable stack and, if that stack
-    // doesn't fit in the *remaining* space on the current page, pdfmake
-    // doesn't retry it on a fresh page — it silently drops the entire
-    // stack. Verified directly: a 25-row table's whole system banner +
-    // equipment section vanished from a real generated PDF, not just a
-    // theoretical concern. An occasional orphaned header is a real,
-    // accepted gap versus the .docx export, but strictly preferable to
-    // that.
   }
 }
 
@@ -221,15 +228,23 @@ export async function exportRangeToPdf({
 
     if (system.hide_when_empty && equipmentToShow.length === 0) continue
 
-    content.push(systemBanner(system.name))
-
-    for (const { eq, timeline } of equipmentToShow) {
+    equipmentToShow.forEach(({ eq, timeline }, index) => {
       const isTracked = system.operation_tracked && !eq.is_generic
       const isRunning = isTracked && equipmentStatuses.get(eq.id) === 'Running'
+      const header = equipmentHeader(eq.name, isRunning)
+      const table = buildEquipmentTable(timeline, eq.id, nameOf)
+      // The banner only needs to ride along with the FIRST equipment's
+      // block — it just needs to not be orphaned alone at a page bottom,
+      // and bundling it with every equipment would be pointless (it only
+      // ever appears once per system, right before the first one anyway).
+      const pieces = index === 0 ? [systemBanner(system.name), header, table] : [header, table]
 
-      content.push(equipmentHeader(eq.name, isRunning))
-      content.push(buildEquipmentTable(timeline, eq.id, nameOf))
-    }
+      if (timeline.length <= MAX_ROWS_FOR_KEEP_TOGETHER) {
+        content.push({ stack: pieces, unbreakable: true })
+      } else {
+        content.push(...pieces)
+      }
+    })
   }
 
   // pdfmake ships its own bundled Roboto font set as a plain filename ->
