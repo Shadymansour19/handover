@@ -14,7 +14,16 @@ const SYSTEM_BANNER_FILL = '#1e293b' // matches --surface-alt
 const EQUIPMENT_HEADER_COLOR = '#2563eb'
 const RUNNING_COLOR = '#15803d'
 const TABLE_HEADER_FILL = '#e2e8f0'
-const TABLE_LINE_COLOR = '#cbd5e1'
+// Black and a bit wider than a typical hairline (0.5pt) — asked for
+// specifically so the table grid is easily visible at a glance, rather
+// than the previous light-gray/thin combination.
+const TABLE_LINE_COLOR = '#000000'
+
+// Bumped up from the initial pass (18/13/11) — title/system/equipment
+// headings were all too small relative to their role in the document.
+const TITLE_FONT_SIZE = 22
+const SYSTEM_BANNER_FONT_SIZE = 16
+const EQUIPMENT_HEADER_FONT_SIZE = 13
 
 // Date | Scope | Status — same proportions as docxExport.js's
 // COLUMN_WIDTHS (scope carries work_scope/detailed_steps/comment, or the
@@ -23,14 +32,30 @@ const TABLE_LINE_COLOR = '#cbd5e1'
 const COLUMN_WIDTHS = ['20%', '60%', '20%']
 
 const TABLE_LAYOUT = {
-  hLineWidth: () => 0.5,
-  vLineWidth: () => 0.5,
+  hLineWidth: () => 1,
+  vLineWidth: () => 1,
   hLineColor: () => TABLE_LINE_COLOR,
   vLineColor: () => TABLE_LINE_COLOR,
   paddingLeft: () => 6,
   paddingRight: () => 6,
   paddingTop: () => 4,
   paddingBottom: () => 4,
+}
+
+// systemBanner() below renders as a single-cell, full-width table rather
+// than a plain text node specifically so `fillColor` paints the whole
+// line — a table cell's fillColor spans the cell's full width, but a
+// plain text node's `background` (see the earlier fix) only wraps tightly
+// around the text itself, which read as "half a banner" next to the
+// .docx version's full-width one. No visible grid of its own: zero border
+// width, only the padding a real border would otherwise need.
+const BANNER_LAYOUT = {
+  hLineWidth: () => 0,
+  vLineWidth: () => 0,
+  paddingLeft: () => 8,
+  paddingRight: () => 8,
+  paddingTop: () => 6,
+  paddingBottom: () => 6,
 }
 
 function headerRow() {
@@ -125,19 +150,12 @@ function buildEquipmentTable(timeline, equipmentId, nameOf) {
 
 function systemBanner(name) {
   return {
-    text: name,
-    bold: true,
-    color: 'white',
-    fontSize: 13,
-    // `background`, not `fillColor` — fillColor only paints table-cell
-    // backgrounds (which is why TABLE_HEADER_FILL above, used inside a
-    // table cell, worked fine); on a plain text node it's silently
-    // ignored, so this rendered as unfilled white text on white
-    // (unreadable) rather than white-on-dark. `pdftotext`-based
-    // verification earlier only checked the text content came through,
-    // not that it was visually legible — a real gap in that check.
-    background: SYSTEM_BANNER_FILL,
-    margin: [4, 5, 4, 5],
+    table: {
+      widths: ['*'],
+      body: [[{ text: name, bold: true, color: 'white', fontSize: SYSTEM_BANNER_FONT_SIZE, fillColor: SYSTEM_BANNER_FILL }]],
+    },
+    layout: BANNER_LAYOUT,
+    margin: [0, 8, 0, 6],
     // No keep-with-next here (unlike docx's keepNext on the equivalent
     // banner/header) — pdfmake's only "keep together" primitive is
     // `unbreakable: true` on a stack, and it was tried and reverted: wrap
@@ -153,8 +171,10 @@ function systemBanner(name) {
 }
 
 function equipmentHeader(name, isRunning) {
-  const text = [{ text: name, bold: true, color: EQUIPMENT_HEADER_COLOR, fontSize: 11 }]
-  if (isRunning) text.push({ text: '  (Running)', bold: true, color: RUNNING_COLOR, fontSize: 11 })
+  const text = [{ text: name, bold: true, color: EQUIPMENT_HEADER_COLOR, fontSize: EQUIPMENT_HEADER_FONT_SIZE }]
+  if (isRunning) {
+    text.push({ text: '  (Running)', bold: true, color: RUNNING_COLOR, fontSize: EQUIPMENT_HEADER_FONT_SIZE })
+  }
   return { text, margin: [0, 8, 0, 3] }
 }
 
@@ -225,7 +245,7 @@ export async function exportRangeToPdf({
   const docDefinition = {
     content,
     styles: {
-      title: { fontSize: 18, bold: true, margin: [0, 0, 0, 4] },
+      title: { fontSize: TITLE_FONT_SIZE, bold: true, margin: [0, 0, 0, 4] },
     },
     defaultStyle: { fontSize: 9 },
     pageMargins: [36, 36, 36, 36],
