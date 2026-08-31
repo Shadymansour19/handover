@@ -24,6 +24,21 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-08-30) — light/dark theme follows platform preference
+
+The app was dark-only. Every stylesheet already read colors exclusively
+through `variables.css`'s custom properties (no literal colors elsewhere,
+confirmed by grep), so the only change needed was there: light became the
+default `:root` palette, with the original dark palette moved under
+`@media (prefers-color-scheme: dark)` — no manual toggle, since none was
+asked for, just following the OS/browser setting automatically.
+`index.html`'s `<meta name="theme-color">` similarly split into two tags
+(one per `prefers-color-scheme` value) so the mobile browser chrome/status
+bar tint follows too. The PWA manifest's own `theme_color`/`background_color`
+(used for the install splash screen) stay fixed on the dark values —
+browser support for a manifest-level light/dark split is inconsistent
+enough that it wasn't worth chasing for a rarely-seen splash screen.
+
 ## Decision (2026-08-30) — refinement batch 2
 
 - **Installed app wouldn't rotate, the plain browser tab did**: the

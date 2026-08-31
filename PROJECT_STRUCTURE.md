@@ -31,7 +31,8 @@ handover/
     │
     ├── styles/                 # split by concern (see Notes) — main.css is just @import lines
     │   ├── main.css            # entry point, imports the rest in dependency order
-    │   ├── variables.css       # :root custom properties
+    │   ├── variables.css       # :root custom properties — light by default, dark under
+    │   │                       # prefers-color-scheme (see SPEC.md "light/dark theme")
     │   ├── base.css            # reset, page shell, generic button/status/error styles
     │   ├── login.css           # login screen
     │   ├── layout.css          # app header + floating action button (FAB) cluster chrome

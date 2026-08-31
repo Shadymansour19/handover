@@ -1,11 +1,32 @@
+/* Light is the default palette; dark overrides under prefers-color-scheme
+   so the app follows the platform/browser setting automatically (added
+   2026-08-30 — was dark-only before). No manual toggle — SPEC.md doesn't
+   call for one, this is purely "match the OS/browser preference". Every
+   other stylesheet in src/styles/ only ever reads these var(--...) names,
+   never a literal color, so this file is the only place a theme change
+   needs to happen. */
 :root {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface-alt: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --success: #4ade80;
-  --error: #f87171;
-  --border: #334155;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f9;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent: #2563eb;
+  --success: #16a34a;
+  --error: #dc2626;
+  --border: #cbd5e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-alt: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --success: #4ade80;
+    --error: #f87171;
+    --border: #334155;
+  }
 }
