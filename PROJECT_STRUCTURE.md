@@ -22,7 +22,8 @@ handover/
 │                                # deployed separately via Supabase CLI, NOT the GitHub integration
 │
 ├── public/
-│   └── icons/                  # 192x192, 512x512, maskable — placeholders, real branding is Phase 6
+│   └── icons/                  # 192x192, 512x512, maskable, apple-touch-icon — real branding
+│                                # (see SPEC.md "real app icon")
 │
 └── src/
     ├── main.js                 # bootstrap: init Supabase client, check session, mount a view

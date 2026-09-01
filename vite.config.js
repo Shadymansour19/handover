@@ -9,6 +9,7 @@ export default defineConfig({
         'icons/icon-192.png',
         'icons/icon-512.png',
         'icons/icon-maskable-512.png',
+        'icons/apple-touch-icon.png',
       ],
       manifest: {
         name: 'Handover',

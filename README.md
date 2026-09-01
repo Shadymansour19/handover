@@ -112,8 +112,5 @@ not phases.
   excluded from the installed app's offline precache (see
   PROJECT_STRUCTURE.md) — neither is part of the main bundle.
 - PWA app-shell caching (installable, launches offline) via `vite-plugin-pwa`.
-
-Not yet implemented: PWA polish (Phase 6) — see [PLAN.md](PLAN.md).
-
-Icons in `public/icons/` are placeholders generated with ImageMagick
-(Phase 6 replaces them with real branding).
+- Real app icon (192/512/maskable + apple-touch-icon) in `public/icons/`,
+  browser tab favicon set in `index.html`.

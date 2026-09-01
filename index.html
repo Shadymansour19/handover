@@ -9,6 +9,12 @@
          being the dark value. -->
     <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <!-- Browser tab icon; vite-plugin-pwa's manifest (icons: 192/512/
+         maskable) covers Android's install/home-screen icon separately —
+         iOS Safari specifically wants this apple-touch-icon link rather
+         than reading the manifest for its own "Add to Home Screen" icon. -->
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Handover</title>
   </head>
   <body>

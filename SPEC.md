@@ -24,6 +24,34 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-09-01) — real app icon
+
+Replaced the Phase 1 ImageMagick "H" placeholders with real branding: a
+provided logo (gold "h" / silver "o" — Handover — with a handshake at the
+join). `public/icons/icon-192.png`/`icon-512.png` are straight resizes of
+the square source (already black-background, content roughly centered —
+no aggressive OS cropping applies to "any"-purpose icons, so no extra work
+needed there).
+
+`icon-maskable-512.png` needed real work: Android crops maskable icons
+into arbitrary shapes (circle, squircle, ...) using a safe zone centered
+in the icon, and the source image's own margins (~10-12% left/right)
+were right at the bare minimum, risky across different OEM mask shapes.
+Rebuilt it by floodfill-removing the source's near-black background
+(plain `-transparent`/color-threshold would have punched holes in the
+letters' own dark shadow areas; floodfill from the four corners only
+touches the contiguous background region) and recompositing the isolated
+logo onto a fresh 512x512 black canvas at ~65% width — leaving ~17.5%
+margin on the tightest axis, comfortably past the standard safe-zone
+requirement. Confirmed by the resulting bounding-box math, not just
+eyeballing it.
+
+Also added: `apple-touch-icon.png` (180x180) + `<link rel="icon">`/
+`<link rel="apple-touch-icon">` in `index.html` — there was no favicon at
+all before (Android's install path went through the manifest, but nothing
+covered the plain browser tab or iOS's own "Add to Home Screen", which
+reads this link tag rather than the manifest).
+
 ## Decision (2026-08-30) — light/dark theme follows platform preference
 
 The app was dark-only. Every stylesheet already read colors exclusively

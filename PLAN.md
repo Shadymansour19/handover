@@ -299,11 +299,10 @@ awkward page-break orphaning.
 
 ## Phase 6 — PWA polish
 
-- [x] Real icon set (192/512/maskable): **placeholder only** — still the
-      ImageMagick-generated "H" icons from Phase 1, since no real branding
-      has been provided yet. Left as a placeholder deliberately rather
-      than blocking the rest of Phase 6 on it; swap the three files under
-      `public/icons/` whenever real artwork exists, no code change needed.
+- [x] Real icon set (192/512/maskable + apple-touch-icon): the
+      ImageMagick-generated "H" placeholders from Phase 1 were swapped for
+      real branding (2026-09-01) — see SPEC.md "real app icon" for the
+      maskable safe-zone work involved.
 - [x] Verified offline app-shell behavior on an actual device once
       deployed to Vercel — confirmed working by the user directly ("the
       mobile app is fine").
