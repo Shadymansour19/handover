@@ -24,6 +24,21 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-09-04) — logo refresh
+
+Swapped in a cleaner higher-res render of the same gold-h/silver-o
+handshake logo (1254x1254 source vs. whatever the 2026-09-01 source was)
+— same design, not a rebrand. Regenerated all 4 `public/icons/*.png`
+files with the identical process documented below (straight resizes for
+icon-192/icon-512/apple-touch-icon; floodfill-isolate + recomposite at
+~65% width for icon-maskable-512 — verified bounding box was
+333x336+89+88 on the 512x512 canvas, ~17.4% margin, consistent with the
+original). This time the source is also kept at
+`public/icons/logo-source.png` (not wired into the build/manifest, just
+sits there as the master for future re-generation) since the prior round
+left no source file in the repo at all — a human had to re-supply the
+original logo image from outside the repo to redo this.
+
 ## Decision (2026-09-01) — real app icon
 
 Replaced the Phase 1 ImageMagick "H" placeholders with real branding: a

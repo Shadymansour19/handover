@@ -23,7 +23,8 @@ handover/
 │
 ├── public/
 │   └── icons/                  # 192x192, 512x512, maskable, apple-touch-icon — real branding
-│                                # (see SPEC.md "real app icon")
+│                                # (see SPEC.md "real app icon"); logo-source.png is the master
+│                                # render the others are regenerated from, not wired into the build
 │
 └── src/
     ├── main.js                 # bootstrap: init Supabase client, check session, mount a view
