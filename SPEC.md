@@ -24,6 +24,23 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Fix (2026-09-23) — stale UI after alt-tab away and back mid-modal
+
+Reported: open "+ New Record", alt-tab to another app and back, and the
+save appears to succeed but the main view never shows the new record
+until a manual page refresh. Root cause: `main.js`'s `render()` wipes and
+remounts `#app` from scratch, and `auth.js`'s `onAuthStateChange()` called
+it on *every* Supabase auth event — including `TOKEN_REFRESHED`, which
+Supabase fires routinely and notably the moment a backgrounded tab
+regains focus, not just on a real sign-in/out. The modal itself survives
+a remount (`lib/modal.js` appends its overlay to `document.body`, not
+`#app`), so the user could still fill it in and the write still went
+through — but its `onSaved`/`reload()` closure was bound to the now-
+discarded old view's `recordsContainer`, which the visible (new) view no
+longer has any connection to. Fixed by filtering to `SIGNED_IN`/
+`SIGNED_OUT` only in `onAuthStateChange()` — those are the only events
+that represent an actual change in who's signed in.
+
 ## Decision (2026-09-04) — logo refresh
 
 Swapped in a cleaner higher-res render of the same gold-h/silver-o
@@ -33,11 +50,20 @@ files with the identical process documented below (straight resizes for
 icon-192/icon-512/apple-touch-icon; floodfill-isolate + recomposite at
 ~65% width for icon-maskable-512 — verified bounding box was
 333x336+89+88 on the 512x512 canvas, ~17.4% margin, consistent with the
-original). This time the source is also kept at
-`public/icons/logo-source.png` (not wired into the build/manifest, just
-sits there as the master for future re-generation) since the prior round
-left no source file in the repo at all — a human had to re-supply the
-original logo image from outside the repo to redo this.
+original). This time the source is also kept, at `branding/logo-source.png`
+(sibling to `src/`/`public/`, not inside it — see the 2026-09-23 fix
+below for why that distinction matters) as the master for future
+re-generation, since the prior round left no source file in the repo at
+all — a human had to re-supply the original logo image from outside the
+repo to redo this.
+
+**Fixed 2026-09-23**: it was first committed inside `public/icons/`, which
+Vite copies verbatim into every deploy — a 2.3MB source render doesn't
+need to ship to production at all, and it actually broke the build
+outright once workbox tried to precache it (over its default 2MB
+per-file limit, which errors instead of just warning). Moved to
+`branding/` — still tracked in git for future regeneration, no longer
+served or precached.
 
 ## Decision (2026-09-01) — real app icon
 

@@ -21,10 +21,17 @@ handover/
 │       └── admin-manage-users/ # create account / set someone else's password (needs service_role);
 │                                # deployed separately via Supabase CLI, NOT the GitHub integration
 │
+├── branding/
+│   └── logo-source.png         # master render the public/icons/*.png files are regenerated
+│                                # from — deliberately NOT under public/ (Vite copies that
+│                                # verbatim into every deploy; a 2.3MB source file doesn't need
+│                                # to ship to production, and broke the build outright once
+│                                # workbox tried to precache it — see SPEC.md "real app icon"
+│                                # fixed 2026-09-23)
+│
 ├── public/
 │   └── icons/                  # 192x192, 512x512, maskable, apple-touch-icon — real branding
-│                                # (see SPEC.md "real app icon"); logo-source.png is the master
-│                                # render the others are regenerated from, not wired into the build
+│                                # (see SPEC.md "real app icon")
 │
 └── src/
     ├── main.js                 # bootstrap: init Supabase client, check session, mount a view
