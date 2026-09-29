@@ -13,13 +13,15 @@ import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { formatDateDMY } from '../lib/dateFormat.js'
 
-export function renderSystemsHTML(systems, records, permissions, equipmentStatuses) {
+export function renderSystemsHTML(systems, records, permissions, equipmentStatuses, hasSearch = false) {
   const sections = systems
     .map((system) => renderSystemSection(system, records, permissions, equipmentStatuses))
     .filter(Boolean)
 
   if (sections.length === 0) {
-    return '<p class="empty">No maintenance records in this date range.</p>'
+    return hasSearch
+      ? '<p class="empty">No maintenance records match your search in this date range.</p>'
+      : '<p class="empty">No maintenance records in this date range.</p>'
   }
   return sections.join('\n')
 }

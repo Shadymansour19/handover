@@ -68,6 +68,9 @@ handover/
     │   │                       # into its own zero-dependency file so it can be shared with
     │   │                       # pdfExport.js without statically importing (and thus bundling)
     │   │                       # either export library into the other's lazy chunk
+    │   ├── realtime.js         # subscribeToChanges(): live-sync postgres_changes subscription,
+    │   │                       # generic across tables/callers (mainView.js, historyModal.js) —
+    │   │                       # see SPEC.md "live sync between users"
     │   ├── docxExport.js       # docx generation — dynamically import()'d from mainView.js's
     │   │                       # Export handler, not a top-level import (keeps the ~350KB
     │   │                       # docx library out of the main bundle until actually needed)

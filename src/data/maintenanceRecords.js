@@ -5,15 +5,31 @@ const SELECT_COLUMNS =
   'detailed_steps, work_status, work_status_other, comment, created_by, ' +
   'deleted_at, updated_at'
 
+// PostgREST's `or=(...)` filter syntax treats `,`/`(`/`)` as structural
+// (splitting/grouping conditions), so a search term containing any of
+// those needs its value wrapped in double quotes to be taken literally —
+// backslash-escaping alone does NOT work here (confirmed directly against
+// the live REST endpoint: an escaped comma still failed to parse; a
+// double-quoted value with a raw comma/paren inside it worked). The
+// quoted value's own backslashes/quotes then need their own escaping.
+function escapeIlikeTerm(term) {
+  return term.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 // Fetch maintenance records whose [start_date, end_date] range overlaps
 // [from, to]. An open-ended end_date (still in progress) is treated as
-// overlapping everything from start_date onward.
+// overlapping everything from start_date onward. `search`, if given,
+// additionally requires a case-insensitive substring match in
+// work_scope/detailed_steps/comment (one `or=(...)` group, ANDed with the
+// date-range `or=(...)` group above it — confirmed directly against the
+// live REST endpoint that two separate .or() calls combine this way,
+// rather than the second overwriting the first).
 //
 // includeDeleted only actually returns anything extra for an admin — RLS
 // hides deleted rows from everyone else regardless of this flag (see
 // 20260830060000_admin_view_restore_deleted.sql), so it's safe to pass
 // through without checking the caller's role here.
-export async function fetchMaintenanceRecords({ from, to, includeDeleted = false }) {
+export async function fetchMaintenanceRecords({ from, to, includeDeleted = false, search = '' }) {
   let query = supabase
     .from('maintenance_records')
     .select(SELECT_COLUMNS)
@@ -23,6 +39,12 @@ export async function fetchMaintenanceRecords({ from, to, includeDeleted = false
 
   if (!includeDeleted) {
     query = query.is('deleted_at', null)
+  }
+
+  const trimmedSearch = search.trim()
+  if (trimmedSearch) {
+    const pattern = `"*${escapeIlikeTerm(trimmedSearch)}*"`
+    query = query.or(`work_scope.ilike.${pattern},detailed_steps.ilike.${pattern},comment.ilike.${pattern}`)
   }
 
   const { data, error } = await query

@@ -1,13 +1,14 @@
 import { openModal } from '../lib/modal.js'
+import { escapeHTML } from '../lib/html.js'
 
-// Date-range + (admin-only) "show deleted" filter, as a dialog. Used to be
-// an always-visible inline form in the toolbar; moved into a modal as part
-// of the floating-action-button redesign (see mainView.js) so the toolbar
-// itself can stay hidden until Filter is actually clicked. Rebuilt fresh
-// every open, so it always reflects the caller's current values/isAdmin
-// rather than needing its own show/hide toggling the way the old inline
-// checkbox did.
-export function openFilterModal({ from, to, includeDeleted, isAdmin, onApply }) {
+// Date-range + text search + (admin-only) "show deleted" filter, as a
+// dialog. Used to be an always-visible inline form in the toolbar; moved
+// into a modal as part of the floating-action-button redesign (see
+// mainView.js) so the toolbar itself can stay hidden until Filter is
+// actually clicked. Rebuilt fresh every open, so it always reflects the
+// caller's current values/isAdmin rather than needing its own show/hide
+// toggling the way the old inline checkbox did.
+export function openFilterModal({ from, to, search, includeDeleted, isAdmin, onApply }) {
   const { modalEl, close } = openModal(`
     <h2>Filter Records</h2>
     <form id="filter-form" class="record-form">
@@ -15,6 +16,10 @@ export function openFilterModal({ from, to, includeDeleted, isAdmin, onApply }) 
         <label>From <input type="date" id="filter-from" value="${from}" required /></label>
         <label>To <input type="date" id="filter-to" value="${to}" required /></label>
       </div>
+      <label>Search
+        <input type="text" id="filter-search" value="${escapeHTML(search ?? '')}"
+               placeholder="Scope, detailed steps, or comment" />
+      </label>
       ${
         isAdmin
           ? `<label class="checkbox-label">
@@ -37,6 +42,7 @@ export function openFilterModal({ from, to, includeDeleted, isAdmin, onApply }) 
     onApply({
       from: modalEl.querySelector('#filter-from').value,
       to: modalEl.querySelector('#filter-to').value,
+      search: modalEl.querySelector('#filter-search').value,
       includeDeleted: showDeletedInput ? showDeletedInput.checked : includeDeleted,
     })
     close()

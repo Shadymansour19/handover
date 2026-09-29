@@ -24,6 +24,89 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-09-30) — live sync between users
+
+Another user creating/editing/soft-deleting a maintenance record or
+operation event now refreshes the current view automatically — no more
+manual reload to see someone else's change. `lib/realtime.js`
+(`subscribeToChanges`) wraps Supabase Realtime's `postgres_changes`:
+subscribes to `*` events on the given tables and, debounced (400ms, so a
+burst of several changes collapses into one refetch), calls the caller's
+existing `reload()`/`load()` — no attempt to reconcile the specific event
+payload into local state, just "something changed, refetch." mainView.js
+subscribes to both `maintenance_records`/`operation_events`; historyModal.js
+subscribes to `operation_events` only, for the life of that modal.
+
+- **DB**: `20260930000000_enable_realtime.sql` adds both tables to the
+  `supabase_realtime` publication — confirmed directly against the live
+  project that it existed but started with zero tables in it, so this was
+  a real, required step, not a formality. No RLS changes needed:
+  `postgres_changes` already re-evaluates each table's own SELECT policy
+  per subscribing client (the NEW row for INSERT/UPDATE, the OLD row for
+  DELETE).
+- **One accepted, known consequence of that RLS filtering**: a soft-delete
+  is an UPDATE whose NEW row has `deleted_at` set — for a non-admin, that
+  new row no longer satisfies their own SELECT policy (`deleted_at IS
+  NULL`), so they simply don't get an event for their own record being
+  soft-deleted by someone else. It'll still disappear the next time
+  anything else triggers a refetch for them, just not instantly. New
+  records and plain edits (never touching `deleted_at`) don't have this
+  gap — verified directly (see below).
+- **Cleanup matters here as much as the subscription itself** — a channel
+  left running past its view's lifetime keeps calling a
+  `reload()`/`load()` bound to DOM that's no longer on the page, which is
+  the exact same leak class as the stale-UI-after-tab-refocus bug fixed
+  2026-09-23 (just triggered by a DB change instead of a spurious auth
+  event this time). `renderMainView()` now returns an unsubscribe
+  function that `main.js` calls before mounting any fresh view;
+  historyModal.js unsubscribes via its existing `onClose()` hook, same as
+  its outside-click listener.
+- **Verified directly, in stages, given the constraints of this
+  environment** (no real user password available to fully drive an
+  authenticated browser session end-to-end): confirmed the publication
+  membership directly in Postgres; confirmed an anon-key Realtime channel
+  connects and subscribes cleanly against the live project (catches
+  config mistakes — wrong URL/key/table/schema — even without a real
+  session); then, with a concurrent real INSERT via `psql`, confirmed that
+  same anon subscriber receives **nothing** — which is the *correct*
+  behavior (RLS blocking an unauthenticated connection from seeing
+  anything at all), not a failure of the feature. Actually receiving a
+  live update as a real signed-in user is the one thing this session
+  couldn't verify directly — worth a real two-tab check.
+
+## Decision (2026-09-30) — text search across work scope/comments
+
+The main view's Filter dialog gained a "Search" field alongside the
+existing date range — case-insensitive substring match against
+`work_scope`/`detailed_steps`/`comment`, ANDed with the date range (not a
+replacement for it). Maintenance records only, matching what was actually
+asked for; operation events / the History modal don't have a "work scope"
+field to search in the first place. Deliberately **not** threaded into the
+`.docx`/`.pdf` export — an export is meant to be the complete official
+record for a date range, not filtered by whatever an admin happened to be
+searching for on screen.
+
+- Implemented as an additional `.or(...)` filter on
+  `fetchMaintenanceRecords()` (server-side, not fetch-everything-then-
+  filter-client-side) — combines with the existing date-range `.or(...)`
+  as two separate top-level conditions, ANDed together.
+- **A real escaping bug found and fixed before shipping, not assumed
+  correct**: tested directly against the live PostgREST endpoint (curl,
+  then the actual `supabase-js` call) with a search term containing a
+  comma. PostgREST's `or=(...)` filter syntax treats `,`/`(`/`)` as
+  structural regardless of backslash-escaping the value — confirmed
+  backslash-escaping alone still fails to parse. The actual fix is
+  wrapping the `ilike` value in double quotes (`work_scope.ilike."*term*"`
+  instead of `work_scope.ilike.*term*`), which then needs its own
+  backslash/quote escaping for a term containing either. Verified success
+  with a deliberately pathological term (`with, comma (and) parens
+  "quote" \backslash`) before considering it done.
+- Empty-state message now says "No maintenance records match your search
+  in this date range" instead of the generic date-range-only message,
+  when a search term is active and nothing matched — `renderSystemsHTML()`
+  took a new `hasSearch` param for this rather than guessing from
+  `records.length` alone.
+
 ## Decision (2026-09-29) — per-record access grants
 
 Admin can now grant a specific OTHER (non-creator, non-admin) user

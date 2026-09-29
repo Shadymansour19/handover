@@ -21,6 +21,7 @@ import { openFilterModal } from './filterModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
 import { ICONS } from '../lib/icons.js'
 import { downloadBlob } from '../lib/downloadBlob.js'
+import { subscribeToChanges } from '../lib/realtime.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
 // (.docx export) slice (see PLAN.md).
@@ -72,6 +73,18 @@ export async function renderMainView(container, { session, onSignOut }) {
     </div>
   `
 
+  // Live sync: someone else creating/editing a record or operation event
+  // refreshes this view automatically instead of needing a manual reload —
+  // see SPEC.md "live sync between users". `reload` is a function
+  // declaration further down (hoisted), safe to reference here.
+  // main.js MUST call the returned unsubscribe before mounting a fresh
+  // view (a real sign-in/out), or this keeps calling reload() against a
+  // recordsContainer that's no longer even on the page — the exact same
+  // leak class as the stale-UI-after-tab-refocus bug fixed 2026-09-23,
+  // just via a different trigger (a DB change instead of a spurious auth
+  // event).
+  const unsubscribeFromChanges = subscribeToChanges(['maintenance_records', 'operation_events'], reload)
+
   container.querySelector('#sign-out').addEventListener('click', onSignOut)
 
   container.querySelector('#manage-users').addEventListener('click', () => {
@@ -115,6 +128,12 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   let currentRange = range
   let includeDeleted = false
+  // Case-insensitive substring match against work_scope/detailed_steps/
+  // comment (see fetchMaintenanceRecords) — main-view-only, deliberately
+  // not threaded into fetchExportData()'s own fetches below: an export is
+  // meant to be the complete official record for the date range, not
+  // whatever the admin happened to be searching for on screen at the time.
+  let currentSearch = ''
 
   container.querySelector('#fab-new-record').addEventListener('click', () => {
     openNewRecordModal({
@@ -128,10 +147,12 @@ export async function renderMainView(container, { session, onSignOut }) {
     openFilterModal({
       from: currentRange.from,
       to: currentRange.to,
+      search: currentSearch,
       includeDeleted,
       isAdmin: state.profile?.role === 'admin',
       onApply: (next) => {
         currentRange = { from: next.from, to: next.to }
+        currentSearch = next.search
         includeDeleted = next.includeDeleted
         reload()
       },
@@ -354,7 +375,7 @@ export async function renderMainView(container, { session, onSignOut }) {
 
       const [systems, records, equipmentStatuses, profileNames, grantedRecordIds] = await Promise.all([
         fetchSystemsWithEquipment(),
-        fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
+        fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted, search: currentSearch }),
         fetchEquipmentStatuses(),
         fetchProfileNames(),
         // An admin already has full access to everything — only worth
@@ -380,7 +401,8 @@ export async function renderMainView(container, { session, onSignOut }) {
         systems,
         records,
         { userId: session.user.id, isAdmin, grantedRecordIds },
-        equipmentStatuses
+        equipmentStatuses,
+        Boolean(currentSearch.trim())
       )
     } catch (err) {
       recordsContainer.innerHTML = `<p class="error">Failed to load records: ${escapeHTML(
@@ -390,4 +412,6 @@ export async function renderMainView(container, { session, onSignOut }) {
   }
 
   await reload()
+
+  return unsubscribeFromChanges
 }

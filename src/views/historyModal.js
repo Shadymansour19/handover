@@ -13,6 +13,7 @@ import { formatDateTimeDMY } from '../lib/dateFormat.js'
 import { renderBulletList } from '../lib/bullets.js'
 import { openOperationEventModal } from './operationEventModal.js'
 import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
+import { subscribeToChanges } from '../lib/realtime.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
 // limited to the main view's date filter. Edit/Delete per event,
@@ -60,6 +61,18 @@ export async function openHistoryModal({
   )
 
   modalEl.querySelector('#history-close').addEventListener('click', close)
+
+  // Live sync: another user creating/editing an operation event for this
+  // equipment refreshes the list automatically — see SPEC.md "live sync
+  // between users". `load` is a function declaration further down
+  // (hoisted), safe to reference here. Unsubscribed via onClose() like
+  // the outside-click listener below, for the same reason: this modal can
+  // be opened and closed repeatedly for the life of the session, so
+  // leaving the subscription running past a close would leak one more
+  // listener (calling a load() bound to an already-closed modal) every
+  // time History is reopened.
+  const unsubscribeFromChanges = subscribeToChanges(['operation_events'], load)
+  onClose(unsubscribeFromChanges)
 
   const content = modalEl.querySelector('#history-content')
   let includeDeleted = false
