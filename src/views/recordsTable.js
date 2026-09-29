@@ -105,16 +105,18 @@ function renderRecordRow(record, permissions) {
       : record.work_status
 
   const isDeleted = Boolean(record.deleted_at)
-  const canEdit =
-    permissions.isAdmin ||
-    record.created_by === permissions.userId ||
-    Boolean(permissions.grantedRecordIds?.has(record.id))
+  const isOwnRecord = record.created_by === permissions.userId
+  const canEdit = permissions.isAdmin || isOwnRecord || Boolean(permissions.grantedRecordIds?.has(record.id))
+  // "Manage Access" itself is narrower than canEdit — the creator or an
+  // admin can grant/revoke OTHER people's access, but someone who merely
+  // has granted access can't then re-grant it to a third person.
+  const canManageAccess = permissions.isAdmin || isOwnRecord
 
   // Deleted records only ever reach here for an admin (RLS hides them from
   // everyone else) — but permissions.isAdmin is still checked explicitly
   // rather than assumed, matching how every other action here is gated.
-  // "Manage Access" (admin-only, active records only — granting access to
-  // an already-deleted record makes no sense) is what grants the third
+  // "Manage Access" (active records only — granting access to an
+  // already-deleted record makes no sense) is what grants the third
   // canEdit condition above, for someone other than the creator/an admin.
   const menuItems = isDeleted
     ? [
@@ -142,7 +144,7 @@ function renderRecordRow(record, permissions) {
           disabled: !canEdit,
           reason: 'Only the creator, an admin, or someone granted access can delete this',
         },
-        permissions.isAdmin
+        canManageAccess
           ? { action: 'manage-access', icon: ICONS.share, label: 'Manage Access' }
           : null,
       ].filter(Boolean)

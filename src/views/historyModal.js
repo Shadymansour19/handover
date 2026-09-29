@@ -5,7 +5,7 @@ import {
   hardDeleteOperationEvent,
 } from '../data/operationEvents.js'
 import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
-import { fetchUsers } from '../data/users.js'
+import { fetchGrantableUsers } from '../data/profiles.js'
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { openModal } from '../lib/modal.js'
@@ -83,7 +83,13 @@ export async function openHistoryModal({
         const actionLabel = escapeHTML(operationActionLabel(event))
 
         const isDeleted = Boolean(event.deleted_at)
-        const canEdit = isAdmin || event.created_by === userId || grantedEventIds.has(event.id)
+        const isOwnEvent = event.created_by === userId
+        const canEdit = isAdmin || isOwnEvent || grantedEventIds.has(event.id)
+        // Narrower than canEdit — the creator or an admin can grant/revoke
+        // OTHER people's access, but someone who merely has granted access
+        // can't then re-grant it to a third person (see recordsTable.js's
+        // identical canManageAccess).
+        const canManageAccess = isAdmin || isOwnEvent
         const disabledAttrs = canEdit
           ? ''
           : 'disabled title="Only the creator, an admin, or someone granted access can edit/delete this"'
@@ -94,9 +100,9 @@ export async function openHistoryModal({
         // from everyone else) — same shape as the maintenance table's
         // deleted-row menu: no Edit, just Restore/Delete forever. View is
         // available either way, same as the maintenance table. "Manage
-        // Access" (admin-only, active events only) is what grants the
-        // third canEdit condition above, for someone other than the
-        // creator/an admin — same feature as the maintenance table's.
+        // Access" (active events only) is what grants the third canEdit
+        // condition above, for someone other than the creator/an admin —
+        // same feature as the maintenance table's.
         const menuItems = isDeleted
           ? [
               { action: 'view', icon: ICONS.view, label: 'View' },
@@ -109,7 +115,7 @@ export async function openHistoryModal({
               { action: 'view', icon: ICONS.view, label: 'View' },
               { action: 'edit', icon: ICONS.edit, label: 'Edit', attrs: disabledAttrs },
               { action: 'delete', icon: ICONS.delete, label: 'Delete', attrs: disabledAttrs },
-              isAdmin ? { action: 'manage-access', icon: ICONS.share, label: 'Manage Access' } : null,
+              canManageAccess ? { action: 'manage-access', icon: ICONS.share, label: 'Manage Access' } : null,
             ].filter(Boolean)
 
         const menuHTML = menuItems
@@ -278,7 +284,7 @@ export async function openHistoryModal({
       try {
         // Fetched fresh at click time, not kept in state — same reasoning
         // as mainView.js's equivalent handler.
-        const users = await fetchUsers()
+        const users = await fetchGrantableUsers()
         openManageRecordAccessModal({
           recordType: 'operation',
           recordId: record.id,

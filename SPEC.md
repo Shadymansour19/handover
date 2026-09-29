@@ -39,8 +39,9 @@ every active non-admin user except the record's creator.
   table), each just `(record_id/event_id, user_id, granted_by,
   granted_at)`. SELECT policy lets a user see their own grants (needed
   client-side for their own canEdit check) or, if admin, every grant
-  (needed for the modal's checkboxes); INSERT/DELETE are admin-only —
-  granting is admin-only by design, not just hidden in the UI.
+  (needed for the modal's checkboxes); INSERT/DELETE were admin-only at
+  first — **extended same-day** (see below) once the creator was given
+  the same power.
 - Extended the existing `maintenance_records_update`/
   `operation_events_update` RLS policies with a third `EXISTS` branch
   alongside `created_by = auth.uid()`/`is_admin()`. A plain edit never
@@ -67,6 +68,36 @@ every active non-admin user except the record's creator.
   with a `grantedRecordIds`/`grantedEventIds` set — fetched once per
   reload/load, and skipped entirely for an admin session (already has
   full access, no need to know about grants at all).
+
+**Same-day follow-up — creator gets the same "Manage Access" power as
+admin**, not just admin: a record's own creator can now grant/revoke
+other users' access to it too, not only view/edit/delete it themselves.
+
+- `20260929010000_record_access_creator_parity.sql` adds a third
+  condition — `exists (select 1 from maintenance_records/operation_events
+  where id = record_id/event_id and created_by = auth.uid())` — to all
+  three grant-table policies (SELECT, not just INSERT/DELETE: without it,
+  a non-admin creator opening "Manage Access" for their own record would
+  see an empty checklist even when grants already existed, since the old
+  SELECT policy only ever showed a non-admin their own grant row as
+  *grantee*, never rows granting access to someone else on a record they
+  merely created). Verified the same way as the first migration — a real
+  transaction, rolled back after: the creator (not admin) granted access,
+  saw the grant, revoked it, and a third uninvolved user was still
+  rejected.
+- `canManageAccess` (both view files) is deliberately narrower than
+  `canEdit` — creator-or-admin, not "anyone who can edit" — so a merely
+  *granted* user can't turn around and grant a third person access.
+- **Caught before shipping**: the click handler was calling `fetchUsers()`
+  (`data/users.js`), which wraps the `list_users()` RPC — admin-only
+  server-side (it joins `auth.users` for email), so a non-admin creator
+  would have silently gotten an empty candidate list, making the whole
+  feature look broken for anyone but an admin. Fixed by adding
+  `fetchGrantableUsers()` (`data/profiles.js`) instead — a plain
+  `profiles` select (`id, username, full_name, role, is_active`, no
+  email), which `profiles_select`'s RLS already permits for any allowed
+  user, admin or not (the same policy `fetchProfileNames()` already
+  relies on for "Created by" display names).
 
 ## Fix (2026-09-23) — stale UI after alt-tab away and back mid-modal
 

@@ -40,3 +40,18 @@ export async function fetchProfileNames() {
   if (error) throw error
   return new Map(data.map((p) => [p.id, p.full_name || p.username]))
 }
+
+// Candidate list for manageRecordAccessModal.js's "Manage Access" — needs
+// role/is_active too (to exclude admins/inactive users), unlike
+// fetchProfileNames() above. Deliberately NOT list_users() (users.js):
+// that one is admin-only server-side (it joins auth.users for email,
+// which profiles_select was never meant to expose) — since a record's
+// CREATOR can manage its access same as an admin now, this needs to work
+// for a non-admin caller too, and profiles_select already allows any
+// allowed user to read every profile row (no admin check), so a plain
+// select is enough.
+export async function fetchGrantableUsers() {
+  const { data, error } = await supabase.from('profiles').select('id, username, full_name, role, is_active')
+  if (error) throw error
+  return data
+}

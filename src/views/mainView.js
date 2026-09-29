@@ -6,8 +6,7 @@ import {
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
 import { fetchEquipmentStatuses, fetchOperationEvents } from '../data/operationEvents.js'
-import { fetchOwnProfile, fetchProfileNames } from '../data/profiles.js'
-import { fetchUsers } from '../data/users.js'
+import { fetchOwnProfile, fetchProfileNames, fetchGrantableUsers } from '../data/profiles.js'
 import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
@@ -292,11 +291,11 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   async function handleManageAccess(record) {
     try {
-      // Fetched fresh at click time rather than kept in state — admin-only,
-      // infrequent, and avoids every reload() paying for a user list
-      // that's irrelevant to the vast majority of sessions (regular users
-      // never see this action at all).
-      const users = await fetchUsers()
+      // Fetched fresh at click time rather than kept in state — infrequent,
+      // and avoids every reload() paying for a user list that's irrelevant
+      // to most records (only a record's own creator or an admin ever
+      // sees this action at all).
+      const users = await fetchGrantableUsers()
       openManageRecordAccessModal({
         recordType: 'maintenance',
         recordId: record.id,
