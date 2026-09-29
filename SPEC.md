@@ -24,6 +24,50 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-09-29) — per-record access grants
+
+Admin can now grant a specific OTHER (non-creator, non-admin) user
+edit/delete access to one individual maintenance record or operation
+event, on top of the existing "creator or admin" rule — a new "Manage
+Access" action (admin-only) alongside View/Edit/Delete in both the
+records table and the History modal's row menu, opening a checklist of
+every active non-admin user except the record's creator.
+
+- **Schema** (`20260929000000_record_access_grants.sql`): two grant
+  tables, `maintenance_record_access`/`operation_event_access` (one per
+  record type, matching the existing split rather than one polymorphic
+  table), each just `(record_id/event_id, user_id, granted_by,
+  granted_at)`. SELECT policy lets a user see their own grants (needed
+  client-side for their own canEdit check) or, if admin, every grant
+  (needed for the modal's checkboxes); INSERT/DELETE are admin-only —
+  granting is admin-only by design, not just hidden in the UI.
+- Extended the existing `maintenance_records_update`/
+  `operation_events_update` RLS policies with a third `EXISTS` branch
+  alongside `created_by = auth.uid()`/`is_admin()`. A plain edit never
+  touches `deleted_at`, so it doesn't hit the implicit-SELECT-policy-on-
+  UPDATE gotcha the soft-delete RPCs exist for (see
+  20260830050000_soft_delete_rpc.sql) — a normal client `.update()` is
+  enough here, no new RPC needed for editing.
+- `soft_delete_maintenance_record`/`soft_delete_operation_event` (the
+  RPCs, SECURITY DEFINER, bypass RLS and do their own check) got the same
+  third condition added inline, so a granted user can delete too, not
+  just edit.
+- **Verified directly against the live DB** before considering this done
+  (not just "the migration ran without error"): inserted a real test
+  record inside a transaction, confirmed a non-granted second user's
+  update was rejected, had the admin insert a grant, confirmed that SAME
+  user's update then succeeded, confirmed their `soft_delete_*` RPC call
+  also succeeded, and confirmed a third, still-ungranted user couldn't
+  insert a grant for themselves — then rolled the whole transaction back.
+  All five assertions passed before any frontend code was written.
+- Frontend: `data/recordAccess.js` (fetch/set grants, parameterized by
+  `recordType` rather than duplicated per table), `views/
+  manageRecordAccessModal.js` (the shared checklist modal), and both
+  `recordsTable.js`/`historyModal.js`'s `canEdit` computation extended
+  with a `grantedRecordIds`/`grantedEventIds` set — fetched once per
+  reload/load, and skipped entirely for an admin session (already has
+  full access, no need to know about grants at all).
+
 ## Fix (2026-09-23) — stale UI after alt-tab away and back mid-modal
 
 Reported: open "+ New Record", alt-tab to another app and back, and the

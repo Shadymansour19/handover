@@ -4,12 +4,15 @@ import {
   restoreOperationEvent,
   hardDeleteOperationEvent,
 } from '../data/operationEvents.js'
+import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
+import { fetchUsers } from '../data/users.js'
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { openModal } from '../lib/modal.js'
 import { formatDateTimeDMY } from '../lib/dateFormat.js'
 import { renderBulletList } from '../lib/bullets.js'
 import { openOperationEventModal } from './operationEventModal.js'
+import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
 // limited to the main view's date filter. Edit/Delete per event,
@@ -66,6 +69,9 @@ export async function openHistoryModal({
   // load() can be called repeatedly (after edit/delete) without ever
   // re-attaching a second listener onto the same persistent `content` node.
   let currentEvents = []
+  // Which of THIS user's events they've been granted access to beyond
+  // their own — only ever populated for a non-admin (see load() below).
+  let grantedEventIds = new Set()
 
   function renderEventsTable(events) {
     if (events.length === 0) {
@@ -77,17 +83,20 @@ export async function openHistoryModal({
         const actionLabel = escapeHTML(operationActionLabel(event))
 
         const isDeleted = Boolean(event.deleted_at)
-        const canEdit = isAdmin || event.created_by === userId
+        const canEdit = isAdmin || event.created_by === userId || grantedEventIds.has(event.id)
         const disabledAttrs = canEdit
           ? ''
-          : 'disabled title="Only the creator or an admin can edit/delete this"'
+          : 'disabled title="Only the creator, an admin, or someone granted access can edit/delete this"'
 
         const when = formatDateTimeDMY(event.event_timestamp)
 
         // Deleted events only ever reach here for an admin (RLS hides them
         // from everyone else) — same shape as the maintenance table's
         // deleted-row menu: no Edit, just Restore/Delete forever. View is
-        // available either way, same as the maintenance table.
+        // available either way, same as the maintenance table. "Manage
+        // Access" (admin-only, active events only) is what grants the
+        // third canEdit condition above, for someone other than the
+        // creator/an admin — same feature as the maintenance table's.
         const menuItems = isDeleted
           ? [
               { action: 'view', icon: ICONS.view, label: 'View' },
@@ -100,7 +109,8 @@ export async function openHistoryModal({
               { action: 'view', icon: ICONS.view, label: 'View' },
               { action: 'edit', icon: ICONS.edit, label: 'Edit', attrs: disabledAttrs },
               { action: 'delete', icon: ICONS.delete, label: 'Delete', attrs: disabledAttrs },
-            ]
+              isAdmin ? { action: 'manage-access', icon: ICONS.share, label: 'Manage Access' } : null,
+            ].filter(Boolean)
 
         const menuHTML = menuItems
           .map(
@@ -149,7 +159,14 @@ export async function openHistoryModal({
   async function load() {
     content.innerHTML = '<p class="loading">Loading…</p>'
     try {
-      currentEvents = await fetchEquipmentHistory(equipment.id, { includeDeleted })
+      const [events, granted] = await Promise.all([
+        fetchEquipmentHistory(equipment.id, { includeDeleted }),
+        // An admin already has full access to everything — only worth
+        // fetching for a regular user's own canEdit check.
+        isAdmin ? Promise.resolve(new Set()) : fetchMyRecordAccessIds('operation'),
+      ])
+      currentEvents = events
+      grantedEventIds = granted
       content.innerHTML = renderEventsTable(currentEvents)
     } catch (err) {
       currentEvents = []
@@ -256,6 +273,24 @@ export async function openHistoryModal({
         onChanged?.()
       } catch (err) {
         window.alert(err.message || 'Failed to permanently delete event.')
+      }
+    } else if (button.dataset.action === 'manage-access') {
+      try {
+        // Fetched fresh at click time, not kept in state — same reasoning
+        // as mainView.js's equivalent handler.
+        const users = await fetchUsers()
+        openManageRecordAccessModal({
+          recordType: 'operation',
+          recordId: record.id,
+          creatorId: record.created_by,
+          users,
+          onSaved: () => {
+            load()
+            onChanged?.()
+          },
+        })
+      } catch (err) {
+        window.alert(err.message || 'Failed to load users.')
       }
     }
   })

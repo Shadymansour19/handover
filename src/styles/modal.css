@@ -125,6 +125,17 @@
   font-size: 0.8rem;
 }
 
+/* manageRecordAccessModal.js's per-user checkbox list — capped height +
+   scroll since the candidate list grows with however many normal users
+   exist, unlike every other modal's fixed set of fields. */
+.access-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 /* Record view (read-only) */
 
 .record-details {

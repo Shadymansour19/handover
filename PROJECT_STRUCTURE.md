@@ -84,6 +84,9 @@ handover/
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution
     │   ├── users.js                # admin user management: list_users(), profiles update (RLS),
     │   │                           # + the two Edge-Function-backed calls (create, set-password)
+    │   ├── recordAccess.js         # per-record access grants — fetch/set, parameterized by
+    │   │                           # recordType ('maintenance' | 'operation') rather than one
+    │   │                           # copy per table (see SPEC.md "per-record access grants")
     │   └── systemsEquipment.js    # reference data (systems + nested equipment, ordered)
     │
     └── views/                  # each view is a function that renders into a container element
@@ -99,6 +102,8 @@ handover/
         ├── historyModal.js     # all operation events for one unit; Edit/Delete per event; admin
         │                       # "Show deleted" + Restore/Delete-forever, same as maintenance records
         ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
+        ├── manageRecordAccessModal.js  # admin-only: grant/revoke one other user's access to a
+        │                               # specific record — shared by recordsTable.js/historyModal.js
         ├── changePasswordModal.js  # any signed-in user: change their own password
         └── filterModal.js      # date range + admin-only "show deleted" dialog, opened from the
                                  # main view's Filter FAB (see mainView.js's FAB cluster, Notes below)

@@ -9,6 +9,12 @@ const DELETE = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stro
 
 const RESTORE = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/></svg>`
 
+// Admin's per-record "Manage Access" row-menu item (recordsTable.js /
+// historyModal.js) — reuses this rather than ICONS.users (that one's
+// already "Manage Users" in the header hamburger menu; a different icon
+// here avoids the two looking like the same feature).
+const SHARE = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`
+
 // Larger (20x20) icons for the FAB cluster / header menu triggers —
 // everything above this is sized for a table row's inline action menu.
 const PLUS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`
@@ -65,4 +71,5 @@ export const ICONS = {
   signout: SIGNOUT,
   eye: EYE,
   eyeOff: EYE_OFF,
+  share: SHARE,
 }

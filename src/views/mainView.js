@@ -7,6 +7,8 @@ import {
 } from '../data/maintenanceRecords.js'
 import { fetchEquipmentStatuses, fetchOperationEvents } from '../data/operationEvents.js'
 import { fetchOwnProfile, fetchProfileNames } from '../data/profiles.js'
+import { fetchUsers } from '../data/users.js'
+import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
@@ -14,6 +16,7 @@ import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
 import { openHistoryModal } from './historyModal.js'
 import { openManageUsersModal } from './manageUsersModal.js'
+import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 import { openChangePasswordModal } from './changePasswordModal.js'
 import { openFilterModal } from './filterModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
@@ -33,6 +36,10 @@ export async function renderMainView(container, { session, onSignOut }) {
     profile: null,
     equipmentStatuses: new Map(),
     profileNames: new Map(),
+    // Which maintenance records the CURRENT user has been granted access
+    // to beyond their own — only ever populated for a non-admin session
+    // (an admin already has full access to everything, see reload()).
+    grantedRecordIds: new Set(),
   }
 
   container.innerHTML = `
@@ -278,8 +285,29 @@ export async function renderMainView(container, { session, onSignOut }) {
       handleRestore(record)
     } else if (button.dataset.action === 'hard-delete') {
       handleHardDelete(record)
+    } else if (button.dataset.action === 'manage-access') {
+      handleManageAccess(record)
     }
   })
+
+  async function handleManageAccess(record) {
+    try {
+      // Fetched fresh at click time rather than kept in state — admin-only,
+      // infrequent, and avoids every reload() paying for a user list
+      // that's irrelevant to the vast majority of sessions (regular users
+      // never see this action at all).
+      const users = await fetchUsers()
+      openManageRecordAccessModal({
+        recordType: 'maintenance',
+        recordId: record.id,
+        creatorId: record.created_by,
+        users,
+        onSaved: reload,
+      })
+    } catch (err) {
+      window.alert(err.message || 'Failed to load users.')
+    }
+  }
 
   async function handleRestore(record) {
     if (!window.confirm(`Restore the "${record.work_scope}" record?`)) return
@@ -325,17 +353,22 @@ export async function renderMainView(container, { session, onSignOut }) {
       const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
       const isAdmin = profile.role === 'admin'
 
-      const [systems, records, equipmentStatuses, profileNames] = await Promise.all([
+      const [systems, records, equipmentStatuses, profileNames, grantedRecordIds] = await Promise.all([
         fetchSystemsWithEquipment(),
         fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
         fetchEquipmentStatuses(),
         fetchProfileNames(),
+        // An admin already has full access to everything — only worth
+        // fetching (and worth granting in the first place) for a regular
+        // user's own canEdit check.
+        isAdmin ? Promise.resolve(new Set()) : fetchMyRecordAccessIds('maintenance'),
       ])
       state.systems = systems
       state.records = records
       state.profile = profile
       state.equipmentStatuses = equipmentStatuses
       state.profileNames = profileNames
+      state.grantedRecordIds = grantedRecordIds
 
       const currentUserEl = container.querySelector('#current-user')
       if (currentUserEl) {
@@ -347,7 +380,7 @@ export async function renderMainView(container, { session, onSignOut }) {
       recordsContainer.innerHTML = renderSystemsHTML(
         systems,
         records,
-        { userId: session.user.id, isAdmin },
+        { userId: session.user.id, isAdmin, grantedRecordIds },
         equipmentStatuses
       )
     } catch (err) {
