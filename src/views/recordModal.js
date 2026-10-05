@@ -103,13 +103,20 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
 
   // Mirrors the maintenance_record_biu DB trigger client-side, for
   // immediate feedback — the trigger still enforces this server-side
-  // regardless, so this is UX only, not the actual guarantee.
+  // regardless, so this is UX only, not the actual guarantee. "Other" is a
+  // third case alongside terminal/non-terminal: optional end date, no
+  // auto-fill (unlike a terminal status transitioned into) and no forced
+  // clear (unlike every other non-terminal status) — left exactly as the
+  // user set it, including empty for "still ongoing".
   function syncEndDateState() {
-    const terminal = isTerminalStatus(statusSelect.value)
-    endDateInput.disabled = !terminal
+    const status = statusSelect.value
+    const terminal = isTerminalStatus(status)
+    const isOther = status === 'Other'
+
+    endDateInput.disabled = !terminal && !isOther
     if (terminal) {
       if (!endDateInput.value) endDateInput.value = todayISO()
-    } else {
+    } else if (!isOther) {
       endDateInput.value = ''
     }
   }

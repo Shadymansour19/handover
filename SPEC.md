@@ -24,6 +24,29 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-12) — "Other" status: optional end date
+
+Work status "Other" now gets an optional end date — set it if the work
+actually concluded, or leave it empty for "still ongoing," same semantics
+as the three genuine terminal statuses (Work is Done/Job Canceled/Job
+Held) minus the auto-fill. Needed a DB change, not just a UI one: the
+`maintenance_record_biu` trigger previously force-nulled `end_date` on
+*every* write for any non-terminal status, "Other" included, regardless
+of what the client sent — a client-only fix would've been silently undone
+server-side on every save. Added a third branch (terminal / "Other" /
+everything else) — "Other" passes the client's `end_date` through
+untouched (no auto-fill like a terminal status, no forced null like every
+other non-terminal status). The three genuinely "in progress" statuses
+(Permit Prepared/Submitted/Discussed/Ready to Open, Work in Progress)
+still have no end-date concept at all — only "Other" changed.
+
+Verified directly against the live DB (not just reasoning about the SQL):
+a real transaction, rolled back after, covering all four cases — "Other"
+with an explicit end date (kept), "Other" with none (stays null, not
+auto-filled), and two regression checks confirming unrelated statuses are
+unaffected — Work in Progress still force-nulls an end date even if one
+is sent, and a terminal status still auto-fills when left empty.
+
 ## Decision (2026-10-05) — autocomplete from history, not a generative model
 
 Asked for: "auto-suggest completion... based on previous records data,"
