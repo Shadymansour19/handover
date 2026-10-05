@@ -24,6 +24,57 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
+
+Three smaller, independent features landed together.
+
+**Stale-record flagging** (`lib/staleness.js`) — a maintenance record is
+"stale" when it's sat in a non-terminal status without an update past
+that status's own threshold: 4 days for the pre-work "permit" stages
+(Prepared/Submitted/Discussed/Ready to Open), 7 days for Work in
+Progress. Terminal statuses and "Other" are never flagged — there's no
+"stale" concept for a closed or free-text-catch-all record. Two parts:
+
+- A persistent `⚠ Stale` tag next to the status in the records table,
+  recomputed on every render (so it just naturally stays current, no
+  separate tracking needed) — visible to anyone who can see the record.
+- A one-time-per-session popup (`staleRecordsModal.js`) listing stale
+  records the CURRENT user can actually act on (admin: every stale
+  record; a regular user: their own, or one they've been granted access
+  to), each with a direct "Edit" button. Deliberately gated to fire once
+  per `renderMainView()` call, not on every `reload()` — reload() now
+  fires constantly (live sync, every action, the user's own edits), and
+  re-popping the same dialog on every one of those would be a real
+  regression, not a feature. Checked against real current data before
+  shipping: nothing in the live DB is stale yet (closest is 3 days, one
+  day under the 4-day threshold) — so this won't visibly do anything
+  immediately, which is correct, not a sign it's broken.
+- Added a `--warning` color token (`variables.css`, light + dark) — the
+  existing palette only had `--success`/`--error`, nothing in between.
+
+**Self-service undo after delete** — the record's own creator can now
+undo their OWN just-performed soft-delete, via a short "Undo" toast
+(`lib/undoToast.js`) with a visible countdown, for both maintenance
+records and operation events. This needed a DB change: `restore_*`'s own
+server-side check gained a second condition alongside `is_admin()` —
+`created_by = auth.uid() AND deleted_at > now() - interval '20 seconds'`
+— deliberately time-boxed via `deleted_at` itself, not a standing
+"creator can always restore" permission. The point is covering the
+common accidental-click case cheaply, not reopening who gets to decide
+what comes back after a delete in general — that stays admin-only beyond
+the window, unchanged. The toast is only ever shown to someone the RPC
+will actually let succeed (admin, or the creator) — someone who merely
+has granted edit access doesn't get a toast that would just fail if
+clicked. Verified directly against the live DB in one rolled-back
+transaction: a fresh delete's undo succeeds for the creator, the same
+delete 30s later (past the window) is rejected, and a third, uninvolved
+user is rejected regardless of timing.
+
+**Date-range presets** (`lib/dateRange.js`, `filterModal.js`) — "Last 7
+days" / "Last 30 days" / "This month" buttons that just fill the From/To
+inputs rather than auto-submitting, since someone picking a preset might
+still want to add a search term or toggle Show Deleted before applying.
+
 ## Decision (2026-10-12) — "Other" status: optional end date
 
 Work status "Other" now gets an optional end date — set it if the work

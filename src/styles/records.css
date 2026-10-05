@@ -256,6 +256,14 @@
   font-weight: normal;
 }
 
+/* lib/staleness.js — a record stuck in a non-terminal status past its
+   threshold without an update. */
+.stale-tag {
+  color: var(--warning);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
 /* Scoped as `.records-table td.actions` (not just `.actions`) on purpose:
    `.records-table td`'s own `padding: 0.5rem` above is a class+type
    selector, which beats a bare `.actions` class selector on specificity

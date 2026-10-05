@@ -20,6 +20,20 @@ export function getDefaultRange() {
   return { from: toISODate(from), to: toISODate(today) }
 }
 
+// Preset buttons in filterModal.js — same "inclusive of today" convention
+// as getDefaultRange() above.
+export function getLast30DaysRange() {
+  const today = new Date()
+  const from = new Date(today.getTime() - 29 * DAY_MS)
+  return { from: toISODate(from), to: toISODate(today) }
+}
+
+export function getThisMonthRange() {
+  const today = new Date()
+  const from = new Date(today.getFullYear(), today.getMonth(), 1)
+  return { from: toISODate(from), to: toISODate(today) }
+}
+
 // `<input type="datetime-local">` needs "YYYY-MM-DDTHH:MM" in the viewer's
 // local time (not UTC) — the browser interprets that value as local time
 // both when reading it back out and when displaying it, so this pairs with

@@ -15,6 +15,7 @@ import { openOperationEventModal } from './operationEventModal.js'
 import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 import { subscribeToChanges } from '../lib/realtime.js'
 import { positionDropdownToFit } from '../lib/dropdownPosition.js'
+import { showUndoToast } from '../lib/undoToast.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
 // limited to the main view's date filter. Edit/Delete per event,
@@ -266,11 +267,35 @@ export async function openHistoryModal({
         },
       })
     } else if (button.dataset.action === 'delete') {
-      if (!window.confirm('Delete this operation event? This can be undone by an admin only.')) return
+      if (
+        !window.confirm(
+          'Delete this operation event? You can undo this for a few seconds right after; after that, only an admin can restore it.'
+        )
+      ) {
+        return
+      }
       try {
         await softDeleteOperationEvent(record.id)
         load()
         onChanged?.()
+
+        // Same reasoning as mainView.js's equivalent — only shown when
+        // restoreOperationEvent() will actually succeed for this user.
+        const canUndo = isAdmin || record.created_by === userId
+        if (canUndo) {
+          showUndoToast({
+            message: 'Deleted operation event.',
+            onUndo: async () => {
+              try {
+                await restoreOperationEvent(record.id)
+                load()
+                onChanged?.()
+              } catch (err) {
+                window.alert(err.message || 'Failed to undo — ask an admin to restore it.')
+              }
+            },
+          })
+        }
       } catch (err) {
         window.alert(err.message || 'Failed to delete event.')
       }

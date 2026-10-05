@@ -12,6 +12,7 @@
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { formatDateDMY } from '../lib/dateFormat.js'
+import { staleDays } from '../lib/staleness.js'
 
 export function renderSystemsHTML(systems, records, permissions, equipmentStatuses, hasSearch = false) {
   const sections = systems
@@ -107,6 +108,9 @@ function renderRecordRow(record, permissions) {
       : record.work_status
 
   const isDeleted = Boolean(record.deleted_at)
+  // Only meaningful for an active record — a deleted one isn't "stuck",
+  // it's gone.
+  const stale = isDeleted ? null : staleDays(record)
   const isOwnRecord = record.created_by === permissions.userId
   const canEdit = permissions.isAdmin || isOwnRecord || Boolean(permissions.grantedRecordIds?.has(record.id))
   // "Manage Access" itself is narrower than canEdit — the creator or an
@@ -162,7 +166,11 @@ function renderRecordRow(record, permissions) {
     <tr class="${isDeleted ? 'row-deleted' : ''}">
       <td>${escapeHTML(formatDateDMY(record.start_date))}</td>
       <td>${escapeHTML(record.work_scope)}${isDeleted ? ' <span class="deleted-tag">(Deleted)</span>' : ''}</td>
-      <td>${escapeHTML(status)}</td>
+      <td>${escapeHTML(status)}${
+        stale !== null
+          ? ` <span class="stale-tag" title="No update in ${stale} day${stale === 1 ? '' : 's'}">⚠ Stale</span>`
+          : ''
+      }</td>
       <td class="actions">
         <div class="row-menu">
           <button type="button" class="row-menu__trigger" data-action="toggle-menu"

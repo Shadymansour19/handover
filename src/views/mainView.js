@@ -23,6 +23,9 @@ import { ICONS } from '../lib/icons.js'
 import { downloadBlob } from '../lib/downloadBlob.js'
 import { subscribeToChanges } from '../lib/realtime.js'
 import { positionDropdownToFit } from '../lib/dropdownPosition.js'
+import { showUndoToast } from '../lib/undoToast.js'
+import { staleDays } from '../lib/staleness.js'
+import { openStaleRecordsModal } from './staleRecordsModal.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
 // (.docx export) slice (see PLAN.md).
@@ -144,6 +147,10 @@ export async function renderMainView(container, { session, onSignOut }) {
   // meant to be the complete official record for the date range, not
   // whatever the admin happened to be searching for on screen at the time.
   let currentSearch = ''
+  // Stale-records popup (staleRecordsModal.js) is a one-time-per-session
+  // nudge, not something to re-show on every reload() — and reload() now
+  // fires constantly (live sync, every own action), not just at mount.
+  let staleCheckDone = false
 
   container.querySelector('#fab-new-record').addEventListener('click', () => {
     openNewRecordModal({
@@ -367,15 +374,71 @@ export async function renderMainView(container, { session, onSignOut }) {
   }
 
   async function handleDelete(record) {
-    if (!window.confirm(`Delete the "${record.work_scope}" record? This can be undone by an admin only.`)) {
+    if (
+      !window.confirm(
+        `Delete the "${record.work_scope}" record? You can undo this for a few seconds right after; after that, only an admin can restore it.`
+      )
+    ) {
       return
     }
     try {
       await softDeleteMaintenanceRecord(record.id)
       reload()
+
+      // Only shown when restoreMaintenanceRecord() will actually succeed
+      // for THIS user — an admin, or the record's own creator (who gets a
+      // brief self-undo window baked into the RPC itself, see
+      // 20261015000000_self_undo_delete.sql). Someone who merely has
+      // granted edit access isn't either of those, so they just don't get
+      // the toast rather than one that fails if clicked.
+      const canUndo = state.profile?.role === 'admin' || record.created_by === session.user.id
+      if (canUndo) {
+        showUndoToast({
+          message: `Deleted "${record.work_scope}".`,
+          onUndo: async () => {
+            try {
+              await restoreMaintenanceRecord(record.id)
+              reload()
+            } catch (err) {
+              window.alert(err.message || 'Failed to undo — ask an admin to restore it.')
+            }
+          },
+        })
+      }
     } catch (err) {
       window.alert(err.message || 'Failed to delete record.')
     }
+  }
+
+  // Proactively surfaces stale records (lib/staleness.js) to whoever can
+  // act on them — admin sees every stale record, a regular user only the
+  // ones they could actually edit (their own, or one they've been granted
+  // access to). Called once per session by reload() above, not on every
+  // refresh.
+  function showStaleRecordsIfAny({ systems, records, isAdmin, grantedRecordIds }) {
+    const equipmentById = new Map(
+      systems.flatMap((s) => s.equipment.map((eq) => [eq.id, { equipmentName: eq.name, systemName: s.name }]))
+    )
+
+    const staleRecords = records
+      .filter((record) => !record.deleted_at)
+      .filter((record) => isAdmin || record.created_by === session.user.id || grantedRecordIds.has(record.id))
+      .map((record) => {
+        const days = staleDays(record)
+        if (days === null) return null
+        const info = equipmentById.get(record.equipment_id)
+        return { record, days, systemName: info?.systemName ?? '—', equipmentName: info?.equipmentName ?? '—' }
+      })
+      .filter(Boolean)
+
+    if (staleRecords.length === 0) return
+
+    openStaleRecordsModal({
+      staleRecords,
+      onEdit: (record) => {
+        openMaintenanceRecordModal({ mode: 'edit', record, systems: state.systems, onSaved: reload })
+      },
+    })
   }
 
   async function reload() {
@@ -415,6 +478,11 @@ export async function renderMainView(container, { session, onSignOut }) {
         equipmentStatuses,
         Boolean(currentSearch.trim())
       )
+
+      if (!staleCheckDone) {
+        staleCheckDone = true
+        showStaleRecordsIfAny({ systems, records, isAdmin, grantedRecordIds })
+      }
     } catch (err) {
       recordsContainer.innerHTML = `<p class="error">Failed to load records: ${escapeHTML(
         err.message || String(err)

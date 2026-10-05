@@ -32,6 +32,32 @@
   font-weight: bold;
 }
 
+/* undoToast.js — bottom-center (not bottom-right, where the FAB cluster
+   lives) — above the FAB cluster (z-index 40) but below the update banner
+   (200, rarer/more important); above modals (100) too, since a delete can
+   happen from inside one (historyModal.js) and the toast should still be
+   reachable without closing it first. */
+.undo-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.9rem;
+}
+
+.undo-toast__button {
+  white-space: nowrap;
+}
+
 .app-header {
   display: flex;
   align-items: center;

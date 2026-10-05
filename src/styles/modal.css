@@ -81,6 +81,19 @@
   gap: 0.75rem;
 }
 
+/* filterModal.js's date-range presets — just fill From/To, not a
+   standalone form field, so no .record-form label wrapper. */
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.preset-button {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+}
+
 .record-form label {
   display: flex;
   flex-direction: column;

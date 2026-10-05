@@ -52,9 +52,13 @@ handover/
     │
     ├── lib/
     │   ├── constants.js        # WORK_STATUSES, ACTIONS, terminal-status check — mirror the DB enums
-    │   ├── dateRange.js        # default "last 7 days"; ISO-date + datetime-local INPUT-value helpers
+    │   ├── dateRange.js        # default "last 7 days" + Last 30 days/This month presets
+    │   │                       # (filterModal.js); ISO-date + datetime-local INPUT-value helpers
     │   ├── dateFormat.js       # dd-mm-yyyy DISPLAY formatting — never used for input values (see
     │   │                       # dateRange.js; those must stay browser-native yyyy-mm-dd)
+    │   ├── staleness.js        # staleDays(): a non-terminal-status record past its own
+    │   │                       # threshold without an update — see SPEC.md "stale-record flagging"
+    │   ├── undoToast.js        # showUndoToast(): short-lived "Undo" toast after a soft-delete
     │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and
@@ -115,6 +119,8 @@ handover/
         ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
         ├── manageRecordAccessModal.js  # admin-only: grant/revoke one other user's access to a
         │                               # specific record — shared by recordsTable.js/historyModal.js
+        ├── staleRecordsModal.js    # once-per-session popup listing stale records the current
+        │                           # user can act on (lib/staleness.js) — "take action" = Edit
         ├── changePasswordModal.js  # any signed-in user: change their own password
         └── filterModal.js      # date range + admin-only "show deleted" dialog, opened from the
                                  # main view's Filter FAB (see mainView.js's FAB cluster, Notes below)

@@ -131,9 +131,11 @@ export async function softDeleteMaintenanceRecord(id) {
   if (error) throw error
 }
 
-// Admin-only — restore_maintenance_record() checks this server-side too,
-// so this isn't the real enforcement, just avoids a round-trip for a
-// request that would always be rejected.
+// Admin, or the record's own creator within a 20s self-undo window right
+// after they deleted it (see mainView.js's showUndoToast() call and
+// 20261015000000_self_undo_delete.sql) — restore_maintenance_record()
+// checks both server-side too, so this isn't the real enforcement, just
+// avoids a round-trip for a request that would always be rejected.
 export async function restoreMaintenanceRecord(id) {
   const { error } = await supabase.rpc('restore_maintenance_record', {
     record_id: id,
