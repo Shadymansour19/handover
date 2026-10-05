@@ -1,11 +1,14 @@
 // Minimal modal helper shared by recordModal/viewRecordModal/historyModal —
 // no framework, so this just handles the overlay/close/escape-key
 // boilerplate once. Pass { wide: true } for content that needs more room
-// than the default form width (e.g. historyModal's table).
-export function openModal(innerHTML, { wide = false } = {}) {
+// than the default form width (e.g. historyModal's table), or
+// { medium: true } for a smaller step up (e.g. newRecordModal.js's form —
+// "a bit wider" than the default, not table-wide).
+export function openModal(innerHTML, { wide = false, medium = false } = {}) {
+  const sizeClass = wide ? ' modal--wide' : medium ? ' modal--medium' : ''
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
-  overlay.innerHTML = `<div class="modal${wide ? ' modal--wide' : ''}" role="dialog" aria-modal="true">${innerHTML}</div>`
+  overlay.innerHTML = `<div class="modal${sizeClass}" role="dialog" aria-modal="true">${innerHTML}</div>`
   document.body.appendChild(overlay)
 
   const modalEl = overlay.querySelector('.modal')

@@ -7,14 +7,17 @@ import { renderOperationForm } from './operationEventModal.js'
 // of either type goes through its own standalone modal instead
 // (openMaintenanceRecordModal / openOperationEventModal), not this one.
 export function openNewRecordModal({ systems, equipmentStatuses, onSaved }) {
-  const { modalEl, close } = openModal(`
+  const { modalEl, close } = openModal(
+    `
     <h2>New Record</h2>
     <div class="tab-switch" role="tablist">
       <button type="button" class="tab-button" data-tab="maintenance" aria-selected="true">Maintenance</button>
       <button type="button" class="tab-button" data-tab="operation" aria-selected="false">Operation</button>
     </div>
     <div id="tab-content"></div>
-  `)
+  `,
+    { medium: true }
+  )
 
   const tabButtons = modalEl.querySelectorAll('.tab-button')
   const tabContent = modalEl.querySelector('#tab-content')

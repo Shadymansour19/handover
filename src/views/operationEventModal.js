@@ -78,7 +78,7 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
         <select id="field-secondary"></select>
       </label>
       <label>Comment (one point per line)
-        <textarea id="field-comment" rows="3">${escapeHTML(initial.comment ?? '')}</textarea>
+        <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
       </label>
       <p id="operation-form-error" class="status status--error" hidden></p>
       <div class="modal-actions">

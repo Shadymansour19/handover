@@ -24,6 +24,21 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-05) — "+ New Record" spellcheck + a bit wider
+
+- Native browser spellcheck/autocorrect, not a custom dictionary/library —
+  `spellcheck="true" autocorrect="on"` on every free-text field shared by
+  `renderMaintenanceForm`/`renderOperationForm` (work scope, detailed
+  steps, other-status free text, comment). Since those two render
+  functions are shared between create (`newRecordModal.js`) and edit
+  (`openMaintenanceRecordModal`/`openOperationEventModal`), both get it,
+  not just the create flow — same form markup either way.
+- `lib/modal.js` gained a third size tier, `{ medium: true }` (600px,
+  between the 520px default and the 720px `{ wide: true }` used for
+  table-heavy content like historyModal.js) — applied to
+  `newRecordModal.js` only, not the standalone edit modals, since only the
+  "+ New Record" dialog was asked to be wider.
+
 ## Decision (2026-09-30) — live sync between users
 
 Another user creating/editing/soft-deleting a maintenance record or

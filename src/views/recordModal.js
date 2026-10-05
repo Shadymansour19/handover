@@ -54,19 +54,21 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
         </label>
       </div>
       <label>Work scope
-        <input type="text" id="field-work-scope" value="${escapeHTML(initial.work_scope)}" required />
+        <input type="text" id="field-work-scope" value="${escapeHTML(initial.work_scope)}" required
+               spellcheck="true" autocorrect="on" />
       </label>
       <label>Detailed steps (one step per line)
-        <textarea id="field-detailed-steps" rows="4">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
+        <textarea id="field-detailed-steps" rows="4" spellcheck="true" autocorrect="on">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
       </label>
       <label>Work status
         <select id="field-work-status" required>${statusOptions}</select>
       </label>
       <label id="field-work-status-other-wrap" hidden>Other status (free text)
-        <input type="text" id="field-work-status-other" value="${escapeHTML(initial.work_status_other ?? '')}" />
+        <input type="text" id="field-work-status-other" value="${escapeHTML(initial.work_status_other ?? '')}"
+               spellcheck="true" autocorrect="on" />
       </label>
       <label>Comment (one point per line)
-        <textarea id="field-comment" rows="3">${escapeHTML(initial.comment ?? '')}</textarea>
+        <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
       </label>
       <p id="record-form-error" class="status status--error" hidden></p>
       <div class="modal-actions">
