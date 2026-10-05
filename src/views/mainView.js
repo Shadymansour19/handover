@@ -22,6 +22,7 @@ import { renderSystemsHTML } from './recordsTable.js'
 import { ICONS } from '../lib/icons.js'
 import { downloadBlob } from '../lib/downloadBlob.js'
 import { subscribeToChanges } from '../lib/realtime.js'
+import { positionDropdownToFit } from '../lib/dropdownPosition.js'
 
 // Phase 2 (Maintenance CRUD) + Phase 3 (operation tracking) + Phase 5
 // (.docx export) slice (see PLAN.md).
@@ -83,7 +84,16 @@ export async function renderMainView(container, { session, onSignOut }) {
   // leak class as the stale-UI-after-tab-refocus bug fixed 2026-09-23,
   // just via a different trigger (a DB change instead of a spurious auth
   // event).
-  const unsubscribeFromChanges = subscribeToChanges(['maintenance_records', 'operation_events'], reload)
+  // maintenance_record_access (not operation_event_access too — this view
+  // never shows operation events or their edit buttons at all, so a grant
+  // change there has no visible effect here; historyModal.js subscribes
+  // to that one instead) is what makes a just-granted user's Edit/Delete
+  // light up live instead of needing an unrelated change elsewhere to
+  // trigger the next reload().
+  const unsubscribeFromChanges = subscribeToChanges(
+    ['maintenance_records', 'operation_events', 'maintenance_record_access'],
+    reload
+  )
 
   container.querySelector('#sign-out').addEventListener('click', onSignOut)
 
@@ -250,6 +260,7 @@ export async function renderMainView(container, { session, onSignOut }) {
       const wasOpen = !dropdown.hidden
       closeAllMenus()
       dropdown.hidden = wasOpen
+      if (!dropdown.hidden) positionDropdownToFit(trigger, dropdown)
       return
     }
 

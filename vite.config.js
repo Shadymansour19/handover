@@ -5,6 +5,15 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      // Registration is now done explicitly in main.js via
+      // `virtual:pwa-register`'s registerSW(), not the plugin's own
+      // auto-injected <script> — the auto-injected one only ever calls
+      // navigator.serviceWorker.register() and nothing else, so a tab
+      // left open across a deploy kept running the stale JS bundle
+      // indefinitely (new service worker activates in the background,
+      // but nothing told the already-loaded page about it). See
+      // SPEC.md "stale app after a deploy".
+      injectRegister: false,
       includeAssets: [
         'icons/icon-192.png',
         'icons/icon-512.png',

@@ -1,7 +1,15 @@
 import './styles/main.css'
+import { registerSW } from 'virtual:pwa-register'
 import { getSession, onAuthStateChange, signIn, signOut } from './auth.js'
 import { renderLoginView } from './views/loginView.js'
 import { renderMainView } from './views/mainView.js'
+import { showUpdateBanner } from './lib/swUpdateBanner.js'
+
+// onNeedReload overrides vite-plugin-pwa's own default for this moment
+// (registerType: 'autoUpdate'), which is a silent window.location.reload()
+// the instant a new service worker activates — see swUpdateBanner.js for
+// why that's risky here.
+registerSW({ immediate: true, onNeedReload: showUpdateBanner })
 
 const app = document.querySelector('#app')
 

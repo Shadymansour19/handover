@@ -3,6 +3,7 @@ import { escapeHTML } from '../lib/html.js'
 import { openModal } from '../lib/modal.js'
 import { passwordFieldHTML, initPasswordToggles } from '../lib/passwordToggle.js'
 import { ICONS } from '../lib/icons.js'
+import { positionDropdownToFit } from '../lib/dropdownPosition.js'
 
 // Admin-only screen: list every user (list_users() RPC — checks admin
 // status itself), create a new one, edit role/username/full name/active
@@ -126,6 +127,7 @@ export async function openManageUsersModal({ currentUserId }) {
       const wasOpen = !dropdown.hidden
       closeAllMenus()
       dropdown.hidden = wasOpen
+      if (!dropdown.hidden) positionDropdownToFit(trigger, dropdown)
       return
     }
 

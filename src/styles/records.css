@@ -301,6 +301,17 @@
   z-index: 10;
 }
 
+/* Added by lib/dropdownPosition.js when there isn't enough room below the
+   trigger (e.g. the last row on a page) — opens upward instead of off the
+   bottom of the viewport. `top: auto` is required alongside `bottom`:
+   with both top and bottom set to non-auto values, the browser stretches
+   the element's height to span between them instead of sizing it to its
+   content. */
+.row-menu__dropdown--up {
+  top: auto;
+  bottom: calc(100% + 0.25rem);
+}
+
 /* `display: flex` must NOT sit on the bare .row-menu__dropdown rule above —
    that has the same specificity as the UA stylesheet's `[hidden] { display:
    none }` and, being defined later, would win and make [hidden] a no-op

@@ -24,6 +24,92 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-05) — autocomplete from history, not a generative model
+
+Asked for: "auto-suggest completion... based on previous records data,"
+explicitly as "some simple free AI model." Given this app has no backend
+of its own (static PWA + Supabase only) and no budget/infra for a hosted
+model or API key, the responsible match for "simple" and "free" is a
+data-driven autocomplete against this project's OWN historical data — not
+a generative/LLM-style completion engine, which would need an external
+paid API this architecture has nowhere to call from.
+
+- `work_scope` only (a single-line `<input>`) — `detailed_steps`/`comment`
+  are multi-line `<textarea>`s, which the native HTML `<datalist>` this
+  uses doesn't support (it suggests a whole-field value, not a
+  per-line/partial completion). Scoping to the one field that's actually
+  a good fit beats a half-working version across all three.
+- `fetchPriorWorkScopes()` (`data/maintenanceRecords.js`): distinct prior
+  `work_scope` values for THIS SPECIFIC equipment (not the whole system or
+  every record globally) — recurring maintenance on a given unit tends to
+  repeat near-identical wording ("Weekly PM", "Borescope Inspection", ...
+  confirmed against real seeded data, not a hypothetical). Visible across
+  every user's records, not just the caller's own —
+  `maintenance_records_select` has no `created_by` restriction (unlike
+  the update policy), and the point here is "what's commonly written for
+  this unit," not "what I personally wrote before."
+- Refetched whenever the Equipment dropdown changes (a new listener —
+  there wasn't one before; only System had one, to repopulate Equipment's
+  options) and once more on initial load, covering the Edit case where
+  equipment is pre-filled. Guarded against out-of-order responses (a
+  request-id counter) since switching equipment quickly fires several
+  overlapping fetches.
+
+## Fix (2026-10-05) — last row's ⋮ menu opening off-screen
+
+The row-menu dropdown (records table, History, Manage Users — all three
+share the same markup/pattern) always opened downward from its trigger.
+For a row near the bottom of the viewport — especially the very last row
+on a page, with nothing below it to scroll to — that could open mostly or
+entirely off-screen. `lib/dropdownPosition.js` (`positionDropdownToFit`)
+measures the trigger's position against the viewport right after a
+dropdown is shown (not before — it needs the dropdown's actual rendered
+height) and flips it upward (`.row-menu__dropdown--up`, a new CSS
+variant) when there isn't enough room below but there is above. Wired
+into all three toggle-menu handlers (mainView.js, historyModal.js,
+manageUsersModal.js), which were already near-identical copies of the
+same logic before this.
+
+## Fix (2026-10-05) — stale app after a deploy; access-grant live sync gap
+
+Two related reports converged on the same root cause: a tab left open
+across a deploy (including "Manage Access" sometimes not appearing)
+needed a manual refresh to catch up.
+
+- **Root cause**: `registerType: 'autoUpdate'` makes the generated service
+  worker call `skipWaiting()`/`clientsClaim()` on its own, but the project
+  was only using vite-plugin-pwa's bare auto-injected registration script
+  (confirmed directly — `dist/registerSW.js` was a single
+  `navigator.serviceWorker.register(...)` call and nothing else). That
+  script has no idea a new service worker ever took over, so the
+  already-loaded page kept running the OLD JS bundle indefinitely —
+  anything shipped since the tab was last fully reloaded (not just
+  Manage Access) would be invisible until a manual refresh.
+- Switched to explicitly calling `virtual:pwa-register`'s `registerSW()`
+  from `main.js` (`injectRegister: false` in `vite.config.js`, so the
+  plugin's own auto-injected script doesn't ALSO register and double up).
+  Traced its actual behavior directly in
+  `node_modules/vite-plugin-pwa/dist/client/build/register.js` rather than
+  assuming from the docs: in `autoUpdate` mode, the DEFAULT behavior the
+  instant the new service worker activates is a silent
+  `window.location.reload()` — risky here, since a facility worker
+  mid-way through a maintenance record shouldn't lose that input to a
+  reload they never saw coming. `onNeedReload` overrides that default;
+  used it to show a small dismissible-by-refreshing banner
+  (`lib/swUpdateBanner.js`) instead, trading "always instantly fresh" for
+  "never silently loses work in progress."
+- **Separately, a real related gap**: the access-grants tables
+  (`maintenance_record_access`/`operation_event_access`) were never added
+  to the `supabase_realtime` publication at all, unlike
+  `maintenance_records`/`operation_events` (2026-09-30's live-sync work) —
+  confirmed directly against the live project. A user just granted access
+  to a record wouldn't see their new Edit/Delete/Manage-Access ability
+  light up live; only an unrelated change to the main tables would
+  happen to trigger their next refetch. Fixed with a new migration
+  (`20261005000000_realtime_access_grants.sql`) plus subscribing
+  mainView.js/historyModal.js to the relevant grant table alongside the
+  record table each already watches.
+
 ## Decision (2026-10-05) — "+ New Record" spellcheck + a bit wider
 
 - Native browser spellcheck/autocorrect, not a custom dictionary/library —

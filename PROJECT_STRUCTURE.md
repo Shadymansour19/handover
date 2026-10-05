@@ -34,7 +34,9 @@ handover/
 │                                # (see SPEC.md "real app icon")
 │
 └── src/
-    ├── main.js                 # bootstrap: init Supabase client, check session, mount a view
+    ├── main.js                 # bootstrap: init Supabase client, check session, mount a view,
+    │                           # register the service worker (virtual:pwa-register — not the
+    │                           # plugin's own auto-injected script, see lib/swUpdateBanner.js)
     ├── supabaseClient.js       # single createClient() instance, imported everywhere
     ├── auth.js                 # email/username + password sign-in, session listener, sign-out
     │
@@ -58,8 +60,13 @@ handover/
     │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and
     │   │                       # header menu's larger ones (plus/filter/export/pdf/dots/menu/...)
     │   ├── modal.js            # openModal(): overlay/close/escape-key + onClose() cleanup hook
+    │   ├── dropdownPosition.js # positionDropdownToFit(): flips a row-menu__dropdown upward when
+    │   │                       # there isn't enough viewport room below its trigger
     │   ├── passwordToggle.js   # shared show/hide markup + wiring for every password field — a
     │   │                       # native browser reveal icon isn't reliable across mobile browsers
+    │   ├── swUpdateBanner.js   # "Update available" banner — shown instead of vite-plugin-pwa's
+    │   │                       # own default silent window.location.reload() on a new deploy (see
+    │   │                       # SPEC.md "stale app after a deploy")
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
     │   │                       # built for Phase 4's main-table attempt (since reverted), kept for
@@ -81,7 +88,8 @@ handover/
     │                           # .pdf export added"
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
-    │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete
+    │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete;
+    │   │                          # fetchPriorWorkScopes() backs recordModal.js's autocomplete
     │   ├── operationEvents.js     # fetch (range + per-equipment history) + create/update +
     │   │                          # soft-delete/restore/hard-delete; equipment_status fetch
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution

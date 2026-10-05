@@ -14,6 +14,7 @@ import { renderBulletList } from '../lib/bullets.js'
 import { openOperationEventModal } from './operationEventModal.js'
 import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 import { subscribeToChanges } from '../lib/realtime.js'
+import { positionDropdownToFit } from '../lib/dropdownPosition.js'
 
 // "All operation events for that unit" (SPEC.md) — full history, not
 // limited to the main view's date filter. Edit/Delete per event,
@@ -71,7 +72,10 @@ export async function openHistoryModal({
   // leaving the subscription running past a close would leak one more
   // listener (calling a load() bound to an already-closed modal) every
   // time History is reopened.
-  const unsubscribeFromChanges = subscribeToChanges(['operation_events'], load)
+  // operation_event_access, alongside operation_events itself, so a user
+  // just granted access to one of this equipment's events gets their
+  // Edit/Delete lit up live too, not just on the next unrelated change.
+  const unsubscribeFromChanges = subscribeToChanges(['operation_events', 'operation_event_access'], load)
   onClose(unsubscribeFromChanges)
 
   const content = modalEl.querySelector('#history-content')
@@ -229,6 +233,7 @@ export async function openHistoryModal({
       const wasOpen = !dropdown.hidden
       closeAllMenus()
       dropdown.hidden = wasOpen
+      if (!dropdown.hidden) positionDropdownToFit(trigger, dropdown)
       return
     }
 

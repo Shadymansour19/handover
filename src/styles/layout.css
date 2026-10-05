@@ -4,6 +4,34 @@
    mainView.js: Add Record/Filter/Export are hidden by default behind a
    single bottom-right dots toggle. */
 
+/* swUpdateBanner.js — a thin bar across the top, not the bottom (where the
+   FAB cluster already lives) — above everything, including open modals
+   (z-index 100) and the FAB cluster (z-index 40), since it's rare and
+   important enough to stay visible regardless of what's open. */
+.sw-update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.9rem;
+}
+
+.sw-update-banner button {
+  background: var(--bg);
+  color: var(--accent);
+  border: none;
+  padding: 0.3rem 0.9rem;
+  font-weight: bold;
+}
+
 .app-header {
   display: flex;
   align-items: center;
