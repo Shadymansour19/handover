@@ -62,9 +62,6 @@ export async function renderMainView(container, { session, onSignOut }) {
         </div>
       </div>
     </header>
-    <div id="records-container" class="records-container">
-      <p class="loading">Loading…</p>
-    </div>
     <div class="fab-cluster" id="fab-cluster">
       <button type="button" class="fab fab--main" id="fab-toggle"
               title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
@@ -74,6 +71,9 @@ export async function renderMainView(container, { session, onSignOut }) {
         <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records" aria-label="Filter records">${ICONS.filter}</button>
         <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record" aria-label="Add record">${ICONS.plus}</button>
       </div>
+    </div>
+    <div id="records-container" class="records-container">
+      <p class="loading">Loading…</p>
     </div>
   `
 

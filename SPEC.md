@@ -24,6 +24,34 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-18) — FAB cluster: toolbar on desktop, floating on mobile
+
+The bottom-right floating dots button (Add Record/Filter/Export Word/
+Export PDF) was asked to stay for "mobile phones and small screens" but
+become a plain, always-visible toolbar row above the records list on
+desktop — not hidden behind a toggle there at all, since there's no space
+constraint to justify it.
+
+Implemented as CSS-only, reusing the exact same markup/JS rather than
+rendering two different button sets: `mainView.js` moved `.fab-cluster`'s
+markup to right before `#records-container` (it used to come after) —
+harmless on mobile, since `position: fixed` takes it out of normal flow
+regardless of DOM position, but it means flipping to `position: static`
+at `min-width: 601px` (same breakpoint `records.css`'s own mobile-only
+table overrides use) makes it land in exactly the right place in normal
+document flow, with no flexbox-reordering trick needed. At that
+breakpoint: the dots toggle itself is hidden (nothing to toggle once
+everything's always shown), and `.fab-actions` is forced visible
+regardless of its `hidden` attribute's actual state via a
+class+attribute selector (`.fab-actions[hidden]`) — the same
+already-tested specificity trick as `.row-menu__dropdown:not([hidden])`
+(records.css), beating the UA stylesheet's `[hidden] { display: none }`
+without reaching for `!important`. The existing `setupToggle()` JS
+(open/close, close-on-outside-click) needed zero changes — it still runs
+on desktop, it just never visibly matters there, since the CSS override
+makes the actions row display regardless of what that logic sets the
+`hidden` attribute to.
+
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 
 Three smaller, independent features landed together.

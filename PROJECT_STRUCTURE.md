@@ -178,11 +178,21 @@ handover/
   only ever loaded on demand when Export/Export PDF is clicked, and
   exporting needs a live Supabase fetch regardless of what's cached, so
   there's no offline export use case to precache for.
-- **Main view toolbar is a floating action button (FAB) cluster, not an
-  inline row** — Add Record/Filter/Export are hidden by default behind a
-  single bottom-right dots FAB (`mainView.js`); Sign Out/Change
-  Password/Manage Users are similarly collapsed behind a header hamburger
-  button. Both reuse the same `setupToggle()` helper (open/close + close on
-  outside click), itself a generalization of the row-menu (⋮) dropdown
-  mechanics already used for per-row/per-user actions — see SPEC.md
-  "2026-08-30 — main view toolbar redesign".
+- **Main view toolbar is a floating action button (FAB) cluster on
+  mobile, a plain toolbar on desktop** — Add Record/Filter/Export are
+  hidden by default behind a single bottom-right dots FAB on narrow
+  screens (`mainView.js`); above 600px wide (`layout.css`'s own
+  `@media (min-width: 601px)`, same breakpoint records.css's mobile
+  overrides use), the identical markup becomes an always-visible row
+  above the records list instead — CSS-only (`position: static`, hide the
+  dots toggle, force the actions row always displayed), no JS branching
+  needed, since `mainView.js` renders the cluster right before
+  `#records-container` specifically so normal document flow already puts
+  it in the right place once `position: fixed` is turned off. See
+  SPEC.md "FAB cluster: toolbar on desktop, floating on mobile". Sign
+  Out/Change Password/Manage Users are separately collapsed behind a
+  header hamburger button on every screen size. Both reuse the same
+  `setupToggle()` helper (open/close + close on outside click), itself a
+  generalization of the row-menu (⋮) dropdown mechanics already used for
+  per-row/per-user actions — see SPEC.md "2026-08-30 — main view toolbar
+  redesign".

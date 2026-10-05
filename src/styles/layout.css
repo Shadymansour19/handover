@@ -154,3 +154,45 @@
 .fab-actions:not([hidden]) {
   display: flex;
 }
+
+/* On screens wide enough that a floating button isn't needed to save
+   space (same breakpoint records.css already uses for its own
+   mobile-only table overrides — kept consistent rather than picking a
+   second magic number): the whole cluster becomes a plain, always-
+   visible toolbar row above the records list instead of a floating
+   bottom-right toggle. The FAB pattern itself stays mobile-only.
+   mainView.js renders .fab-cluster right before #records-container in
+   the markup specifically so this works in normal document flow — no
+   flexbox reordering trick needed, position: static here is enough. */
+@media (min-width: 601px) {
+  .fab-cluster {
+    position: static;
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .fab--main {
+    display: none;
+  }
+
+  /* Same specificity trick as .fab-actions:not([hidden]) above, just
+     covering the opposite case: this needs to stay visible even WHEN
+     [hidden] is present (there's no toggle button left to ever clear it
+     on this layout, and it may carry over from a narrower view). A
+     class+attribute selector is specific enough to beat the UA
+     stylesheet's bare `[hidden] { display: none }`, matching the
+     already-tested pattern rather than reaching for `!important`. */
+  .fab-actions,
+  .fab-actions[hidden] {
+    display: flex;
+    /* DOM order (closest-to-the-toggle last, for the mobile stack) puts
+       Add Record last — reversed here so it reads first/leftmost, as
+       the primary action of the four. */
+    flex-direction: row-reverse;
+  }
+
+  .fab {
+    box-shadow: none;
+  }
+}
