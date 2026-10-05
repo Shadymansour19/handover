@@ -52,6 +52,43 @@ export async function fetchMaintenanceRecords({ from, to, includeDeleted = false
   return data
 }
 
+// Distinct `work_scope` values previously used for this exact equipment,
+// most recent first — backs recordModal.js's "+ New Record" autocomplete
+// (a <datalist>, not a generative/AI suggestion: SPEC.md "autocomplete
+// from history, not a generative model" explains why). Maintenance on a
+// given unit is often recurring/near-identical in wording ("Borescope
+// Inspection" etc.), so this is scoped to just that equipment rather than
+// every record in the system — a global list would be longer and less
+// relevant. Visible across every user's records, not just the caller's
+// own (maintenance_records_select has no created_by restriction, unlike
+// the update policy) — deliberate: the point is "what's commonly written
+// for this unit," not "what I personally wrote before."
+export async function fetchPriorWorkScopes(equipmentId, { limit = 20 } = {}) {
+  const { data, error } = await supabase
+    .from('maintenance_records')
+    .select('work_scope')
+    .eq('equipment_id', equipmentId)
+    .is('deleted_at', null)
+    .order('start_date', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+
+  // No server-side DISTINCT via supabase-js's query builder — this table
+  // is small enough per equipment that fetching a reasonable window and
+  // deduplicating client-side (preserving most-recent-first order) is
+  // simpler than reaching for an RPC just for this.
+  const seen = new Set()
+  const distinct = []
+  for (const { work_scope } of data) {
+    if (seen.has(work_scope)) continue
+    seen.add(work_scope)
+    distinct.push(work_scope)
+    if (distinct.length >= limit) break
+  }
+  return distinct
+}
+
 // `fields` is whatever the form collected — start_date, end_date,
 // system_id, equipment_id, work_scope, detailed_steps, work_status,
 // work_status_other, comment. created_by/end_date auto-fill are handled

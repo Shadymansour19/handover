@@ -1,4 +1,4 @@
-import { createMaintenanceRecord, updateMaintenanceRecord } from '../data/maintenanceRecords.js'
+import { createMaintenanceRecord, updateMaintenanceRecord, fetchPriorWorkScopes } from '../data/maintenanceRecords.js'
 import { escapeHTML } from '../lib/html.js'
 import { openModal } from '../lib/modal.js'
 import { WORK_STATUSES, isTerminalStatus } from '../lib/constants.js'
@@ -55,7 +55,8 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       </div>
       <label>Work scope
         <input type="text" id="field-work-scope" value="${escapeHTML(initial.work_scope)}" required
-               spellcheck="true" autocorrect="on" />
+               spellcheck="true" autocorrect="on" list="field-work-scope-suggestions" autocomplete="off" />
+        <datalist id="field-work-scope-suggestions"></datalist>
       </label>
       <label>Detailed steps (one step per line)
         <textarea id="field-detailed-steps" rows="4" spellcheck="true" autocorrect="on">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
@@ -86,6 +87,7 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
   const otherInput = container.querySelector('#field-work-status-other')
   const errorEl = container.querySelector('#record-form-error')
   const form = container.querySelector('#record-form')
+  const workScopeSuggestions = container.querySelector('#field-work-scope-suggestions')
 
   function populateEquipment(systemId, selectedEquipmentId) {
     const system = systems.find((s) => s.id === systemId)
@@ -118,13 +120,41 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
     otherInput.required = isOther
   }
 
+  // Data-driven autocomplete, not a generative/AI model (SPEC.md
+  // "autocomplete from history, not a generative model") — a <datalist>
+  // of this equipment's own prior work_scope values, since maintenance on
+  // a given unit tends to repeat near-identical wording. Guarded against
+  // out-of-order responses (requestId) since switching equipment quickly
+  // fires several overlapping fetches.
+  let suggestionsRequestId = 0
+  async function updateWorkScopeSuggestions() {
+    const equipmentId = equipmentSelect.value
+    const requestId = ++suggestionsRequestId
+    if (!equipmentId) {
+      workScopeSuggestions.innerHTML = ''
+      return
+    }
+    try {
+      const scopes = await fetchPriorWorkScopes(equipmentId)
+      if (requestId !== suggestionsRequestId) return // superseded by a newer request
+      workScopeSuggestions.innerHTML = scopes
+        .map((scope) => `<option value="${escapeHTML(scope)}"></option>`)
+        .join('')
+    } catch {
+      // A nicety, not a requirement for submitting the form — fail
+      // silently rather than surfacing an error for this.
+    }
+  }
+
   systemSelect.addEventListener('change', () => populateEquipment(systemSelect.value, null))
+  equipmentSelect.addEventListener('change', updateWorkScopeSuggestions)
   statusSelect.addEventListener('change', () => {
     syncEndDateState()
     syncOtherStatusVisibility()
   })
 
   populateEquipment(initial.system_id, initial.equipment_id)
+  updateWorkScopeSuggestions()
   syncEndDateState()
   syncOtherStatusVisibility()
 
