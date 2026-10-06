@@ -162,14 +162,23 @@
    visible toolbar row above the records list instead of a floating
    bottom-right toggle. The FAB pattern itself stays mobile-only.
    mainView.js renders .fab-cluster right before #records-container in
-   the markup specifically so this works in normal document flow — no
-   flexbox reordering trick needed, position: static here is enough. */
+   the markup specifically so this works in normal document flow. */
 @media (min-width: 601px) {
   .fab-cluster {
-    position: static;
+    /* Sticky, not fixed: in normal flow until scrolling would carry it
+       past the top of the viewport, at which point it pins there and
+       stays visible over the records list scrolling underneath — and
+       because it's still in-flow up to that point, it never needs to
+       know the header's height to avoid overlapping it (a fixed
+       position pinned from the very start would have to). */
+    position: sticky;
+    top: 0;
     flex-direction: row;
-    justify-content: flex-end;
     margin-bottom: 1rem;
+    padding: 0.75rem 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 40;
   }
 
   .fab--main {
@@ -190,9 +199,27 @@
        Add Record last — reversed here so it reads first/leftmost, as
        the primary action of the four. */
     flex-direction: row-reverse;
+    /* Fills .fab-cluster's full width — #fab-toggle (the other flex
+       child) is display: none above, so this is the only thing left to
+       stretch into that space. */
+    flex: 1;
   }
 
   .fab {
+    /* Rectangular (a bit rounded), not circular — a floating circular
+       FAB reads fine on mobile, but a static full-width toolbar reads
+       better as ordinary buttons. Same radius as every other plain
+       button in the app (base.css's bare `button` rule) rather than a
+       new value. */
+    border-radius: 4px;
     box-shadow: none;
+  }
+
+  .fab--sub {
+    /* Each of the four buttons fills an equal share of the full width,
+       instead of staying a small fixed-size circle. */
+    flex: 1;
+    width: auto;
+    height: 44px;
   }
 }

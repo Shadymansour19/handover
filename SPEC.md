@@ -52,6 +52,30 @@ on desktop, it just never visibly matters there, since the CSS override
 makes the actions row display regardless of what that logic sets the
 `hidden` attribute to.
 
+**Follow-up (2026-10-06)** — three refinements to the desktop toolbar:
+
+- **Rectangular, gently rounded** (`border-radius: 4px`, matching
+  `base.css`'s plain `button` rule) instead of circular — a circular FAB
+  reads fine floating on mobile, but looks odd as a static full-width
+  toolbar button.
+- **Fills the full width** — `.fab-actions` (and each `.fab--sub` inside
+  it) now `flex: 1` instead of a fixed small size, so the four buttons
+  evenly divide the whole row rather than clustering to one side.
+- **`position: sticky` instead of `position: static`** — stays pinned at
+  the top of the viewport while the records list scrolls underneath it,
+  rather than scrolling away with the page. Sticky rather than fixed on
+  purpose: it stays in normal flow (right below the header) until
+  scrolling would carry it past the top of the viewport, so it never
+  needs to know the header's height to avoid overlapping it the way a
+  `position: fixed` pinned from the very start would.
+
+Verified directly in a real browser (not just reasoning about the CSS) —
+served the actual page through the dev server, screenshotted at the top
+of a long scrollable list (toolbar in its normal in-flow position) and
+after scrolling well past it (toolbar correctly pinned at the viewport
+top, solid background, content scrolling underneath it) — before
+considering this done.
+
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 
 Three smaller, independent features landed together.
