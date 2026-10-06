@@ -34,18 +34,27 @@ export async function openHistoryModal({
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
 
-  // Shared by the table row render and the View modal, so the label logic
-  // (same direction-aware Swap wording as docxExport.js/pdfExport.js —
-  // duplicated there too, one per rendering target) only lives once here.
-  // "out"/"in" spell out which side of the swap this equipment was — the
-  // one that stopped (out, making way for the other) or the one that
-  // started (in, replacing the other) — since a bare arrow alone reads as
-  // "swap(ped) with" without saying which direction that was.
+  // Short form for the table preview — just names the other equipment
+  // involved ("Swap - Pump B"), the same either direction. The
+  // stopped/started distinction is left to operationActionDescription
+  // below (shown in the View modal, one click away) rather than crowding
+  // the table row.
   function operationActionLabel(event) {
+    if (event.action !== 'Swap') return event.action
     const isSecondarySide = event.secondary_equipment_id === equipment.id
-    if (isSecondarySide) return `Swap in ← ${nameOf(event.equipment_id)}`
-    if (event.action === 'Swap') return `Swap out → ${nameOf(event.secondary_equipment_id)}`
-    return event.action
+    const otherId = isSecondarySide ? event.equipment_id : event.secondary_equipment_id
+    return `Swap - ${nameOf(otherId)}`
+  }
+
+  // Full sentence for the View modal (openViewOperationEventModal) — spells
+  // out which equipment stopped and which took over, instead of leaving
+  // the reader to infer direction from an arrow or a dash.
+  function operationActionDescription(event) {
+    if (event.action !== 'Swap') return event.action
+    const isSecondarySide = event.secondary_equipment_id === equipment.id
+    return isSecondarySide
+      ? `This equipment took over; ${nameOf(event.equipment_id)} stopped.`
+      : `This equipment stopped; ${nameOf(event.secondary_equipment_id)} took over.`
   }
 
   const { modalEl, close, onClose } = openModal(
@@ -256,7 +265,7 @@ export async function openHistoryModal({
     if (button.dataset.action === 'view') {
       openViewOperationEventModal({
         event: record,
-        actionLabel: operationActionLabel(record),
+        actionLabel: operationActionDescription(record),
         createdByName: profileNames.get(record.created_by) ?? '—',
       })
     } else if (button.dataset.action === 'edit') {

@@ -155,12 +155,15 @@ function maintenanceRow(record) {
   })
 }
 
-// "out"/"in" spell out which side of the swap this equipment was — see
-// historyModal.js's identical operationActionLabel() for the reasoning.
+// A printed document has no "View" modal to drill into for more detail
+// the way the app's History table does, so this is the full descriptive
+// sentence (historyModal.js's operationActionDescription) rather than its
+// short table-preview form — spells out which equipment stopped and which
+// took over instead of leaving the reader to infer direction from a dash.
 function operationActionLabel(event, equipmentId, nameOf) {
   const isSecondarySide = event.secondary_equipment_id === equipmentId
-  if (isSecondarySide) return `Swap in ← ${nameOf(event.equipment_id)}`
-  if (event.action === 'Swap') return `Swap out → ${nameOf(event.secondary_equipment_id)}`
+  if (isSecondarySide) return `This equipment took over; ${nameOf(event.equipment_id)} stopped.`
+  if (event.action === 'Swap') return `This equipment stopped; ${nameOf(event.secondary_equipment_id)} took over.`
   return event.action
 }
 

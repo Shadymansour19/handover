@@ -218,6 +218,30 @@ in ← Pump A` (this equipment started, replacing Pump A). Same
 all three. Verified the exported `.docx`'s actual XML content (not just
 that it built) shows both label variants correctly.
 
+**Follow-up (2026-10-06)** — split into a short table-preview form and a
+descriptive full-sentence form, rather than one label doing both jobs:
+
+- **History table's Action column** — back to short: `Swap - Pump B`,
+  same text either direction (the stopped/started distinction is now only
+  one click away, not crowding the row).
+- **History's View modal** (`openViewOperationEventModal`) — full
+  sentence instead: "This equipment stopped; Pump B took over." (or "...
+  took over; Pump A stopped." on the other equipment's history), via a
+  new `operationActionDescription()` alongside the now-short
+  `operationActionLabel()` in `historyModal.js`.
+- **`docxExport.js`/`pdfExport.js`** — kept the full sentence, not the
+  short form: a printed document has no "View" modal to drill into for
+  more detail the way the table does, so the export's one line of text
+  needs to already be the complete, self-contained version.
+
+Verified against the real rendered output, not just the string-building
+logic: a temporary harness mounted the actual `openHistoryModal` (data
+calls stubbed in place, restored via `git checkout` right after) and
+confirmed both the table's short label and the View modal's full sentence
+for both equipment's perspectives; the exports were re-verified the same
+way as above (real `.docx` XML and `pdftotext` on a real generated
+`.pdf`).
+
 ## Fix (2026-10-05) — last row's ⋮ menu opening off-screen
 
 The row-menu dropdown (records table, History, Manage Users — all three
