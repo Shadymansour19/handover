@@ -205,6 +205,19 @@ paid API this architecture has nowhere to call from.
   request-id counter) since switching equipment quickly fires several
   overlapping fetches.
 
+## Fix (2026-10-06) — Swap direction in History/exports was unclear
+
+The History table and both exports labeled a Swap event with just an
+arrow (`Swap → Pump B` / `Swap ← Pump A`), relying on the reader to infer
+that `→` meant "this one stopped, that one started" — confusing without
+already knowing the convention. Changed to spell it out: `Swap out →
+Pump B` (this equipment stopped, Pump B started in its place) and `Swap
+in ← Pump A` (this equipment started, replacing Pump A). Same
+`operationActionLabel()` logic duplicated in `historyModal.js`,
+`docxExport.js`, and `pdfExport.js` (one per rendering target); updated
+all three. Verified the exported `.docx`'s actual XML content (not just
+that it built) shows both label variants correctly.
+
 ## Fix (2026-10-05) — last row's ⋮ menu opening off-screen
 
 The row-menu dropdown (records table, History, Manage Users — all three
