@@ -37,10 +37,14 @@ export async function openHistoryModal({
   // Shared by the table row render and the View modal, so the label logic
   // (same direction-aware Swap wording as docxExport.js/pdfExport.js —
   // duplicated there too, one per rendering target) only lives once here.
+  // "out"/"in" spell out which side of the swap this equipment was — the
+  // one that stopped (out, making way for the other) or the one that
+  // started (in, replacing the other) — since a bare arrow alone reads as
+  // "swap(ped) with" without saying which direction that was.
   function operationActionLabel(event) {
     const isSecondarySide = event.secondary_equipment_id === equipment.id
-    if (isSecondarySide) return `Swap ← ${nameOf(event.equipment_id)}`
-    if (event.action === 'Swap') return `Swap → ${nameOf(event.secondary_equipment_id)}`
+    if (isSecondarySide) return `Swap in ← ${nameOf(event.equipment_id)}`
+    if (event.action === 'Swap') return `Swap out → ${nameOf(event.secondary_equipment_id)}`
     return event.action
   }
 

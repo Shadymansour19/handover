@@ -155,10 +155,12 @@ function maintenanceRow(record) {
   })
 }
 
+// "out"/"in" spell out which side of the swap this equipment was — see
+// historyModal.js's identical operationActionLabel() for the reasoning.
 function operationActionLabel(event, equipmentId, nameOf) {
   const isSecondarySide = event.secondary_equipment_id === equipmentId
-  if (isSecondarySide) return `Swap ← ${nameOf(event.equipment_id)}`
-  if (event.action === 'Swap') return `Swap → ${nameOf(event.secondary_equipment_id)}`
+  if (isSecondarySide) return `Swap in ← ${nameOf(event.equipment_id)}`
+  if (event.action === 'Swap') return `Swap out → ${nameOf(event.secondary_equipment_id)}`
   return event.action
 }
 
