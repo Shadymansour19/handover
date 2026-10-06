@@ -66,10 +66,10 @@ export async function renderMainView(container, { session, onSignOut }) {
       <button type="button" class="fab fab--main" id="fab-toggle"
               title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
       <div class="fab-actions" id="fab-actions" hidden>
-        <button type="button" class="fab fab--sub" id="fab-export-pdf" title="Export PDF" aria-label="Export PDF">${ICONS.pdf}</button>
-        <button type="button" class="fab fab--sub" id="fab-export" title="Export Word" aria-label="Export Word">${ICONS.export}</button>
-        <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records" aria-label="Filter records">${ICONS.filter}</button>
-        <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record" aria-label="Add record">${ICONS.plus}</button>
+        <button type="button" class="fab fab--sub" id="fab-export-pdf" title="Export PDF (P)" aria-label="Export PDF">${ICONS.pdf}</button>
+        <button type="button" class="fab fab--sub" id="fab-export" title="Export Word (W)" aria-label="Export Word">${ICONS.export}</button>
+        <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records (F)" aria-label="Filter records">${ICONS.filter}</button>
+        <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record (N)" aria-label="Add record">${ICONS.plus}</button>
       </div>
     </div>
     <div id="records-container" class="records-container">
@@ -178,6 +178,47 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   container.querySelector('#fab-export').addEventListener('click', () => handleExport('docx'))
   container.querySelector('#fab-export-pdf').addEventListener('click', () => handleExport('pdf'))
+
+  // Single-letter shortcuts for the four actions above — bare keypresses
+  // only, so Ctrl/Cmd/Alt combos (e.g. the browser's own Ctrl+F) pass
+  // through untouched, and only while focus isn't in a text field and no
+  // modal is open (modal.js's overlay is the one place .modal-overlay
+  // exists), so typing elsewhere in the app is never hijacked. Hints live
+  // in each button's title (set above) rather than a separate help UI.
+  const SHORTCUT_KEYS = {
+    n: '#fab-new-record',
+    f: '#fab-filter',
+    w: '#fab-export',
+    p: '#fab-export-pdf',
+  }
+
+  function isTypingTarget(el) {
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+  }
+
+  function handleShortcutKeydown(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return
+    if (isTypingTarget(event.target)) return
+    if (document.querySelector('.modal-overlay')) return
+
+    const selector = SHORTCUT_KEYS[event.key.toLowerCase()]
+    if (!selector) return
+
+    const button = container.querySelector(selector)
+    if (!button || button.disabled) return
+
+    event.preventDefault()
+    button.click()
+  }
+
+  // mainView.js only mounts once per signed-in session, but main.js must
+  // still tear this down before a fresh view mounts (a real sign-in/out)
+  // — same leak class as the realtime subscription above, just for a
+  // document-level listener instead of a Supabase channel. Bundled into
+  // the same returned cleanup function below.
+  document.addEventListener('keydown', handleShortcutKeydown)
 
   // Shared by both export formats — always the current filter range's
   // non-deleted data, fetched fresh rather than reused from state.records
@@ -492,5 +533,8 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   await reload()
 
-  return unsubscribeFromChanges
+  return () => {
+    unsubscribeFromChanges()
+    document.removeEventListener('keydown', handleShortcutKeydown)
+  }
 }

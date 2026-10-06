@@ -76,6 +76,30 @@ after scrolling well past it (toolbar correctly pinned at the viewport
 top, solid background, content scrolling underneath it) — before
 considering this done.
 
+**Follow-up (2026-10-06)** — keyboard shortcuts for the four actions:
+`N` (Add Record), `F` (Filter), `W` (Export Word), `P` (Export PDF). A
+single `keydown` listener in `mainView.js` maps the bare (no Ctrl/Cmd/Alt)
+key to the matching button and clicks it — reusing the existing click
+handlers rather than duplicating their logic. Suppressed whenever focus is
+in an input/textarea/select/contenteditable (so normal typing elsewhere in
+the app isn't hijacked) or whenever a modal is already open
+(`.modal-overlay` present), and ignored entirely if any modifier key is
+held, so e.g. the browser's own Ctrl+F still works untouched. The hint is
+surfaced via each button's existing `title` tooltip (e.g. "Add record
+(N)") rather than a separate help UI. Cleaned up via the same mechanism as
+the live-sync subscription — bundled into the function `renderMainView`
+returns, which `main.js` already calls before mounting a fresh view — so
+re-mounting the view (a real sign-in/out) can't double-register the
+listener.
+
+Verified against the real code paths, not a copy of the logic: a temporary
+harness page mounted the actual `renderMainView` (with a fake session, so
+Supabase calls harmlessly fail/no-op) and drove it with real keyboard
+events — confirmed `N`/`F` open the right modal, a second shortcut
+press while a modal is already open adds no second overlay, typing `n`
+into a text field does nothing but type, `Ctrl+F` is a no-op, and `W`/`P`
+each produce a real file download.
+
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 
 Three smaller, independent features landed together.
