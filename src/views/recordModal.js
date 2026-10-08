@@ -129,20 +129,22 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
 
   // Data-driven autocomplete, not a generative/AI model (SPEC.md
   // "autocomplete from history, not a generative model") — a <datalist>
-  // of this equipment's own prior work_scope values, since maintenance on
-  // a given unit tends to repeat near-identical wording. Guarded against
-  // out-of-order responses (requestId) since switching equipment quickly
-  // fires several overlapping fetches.
+  // of prior work_scope values from anywhere in the selected system (not
+  // just the one equipment being edited — SPEC.md "autocomplete
+  // suggestions scoped to system, not equipment"). Triggered off the
+  // System select rather than Equipment, since that's what the scope is
+  // keyed on now. Guarded against out-of-order responses (requestId)
+  // since switching systems quickly fires several overlapping fetches.
   let suggestionsRequestId = 0
   async function updateWorkScopeSuggestions() {
-    const equipmentId = equipmentSelect.value
+    const systemId = systemSelect.value
     const requestId = ++suggestionsRequestId
-    if (!equipmentId) {
+    if (!systemId) {
       workScopeSuggestions.innerHTML = ''
       return
     }
     try {
-      const scopes = await fetchPriorWorkScopes(equipmentId)
+      const scopes = await fetchPriorWorkScopes(systemId)
       if (requestId !== suggestionsRequestId) return // superseded by a newer request
       workScopeSuggestions.innerHTML = scopes
         .map((scope) => `<option value="${escapeHTML(scope)}"></option>`)
@@ -153,8 +155,10 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
     }
   }
 
-  systemSelect.addEventListener('change', () => populateEquipment(systemSelect.value, null))
-  equipmentSelect.addEventListener('change', updateWorkScopeSuggestions)
+  systemSelect.addEventListener('change', () => {
+    populateEquipment(systemSelect.value, null)
+    updateWorkScopeSuggestions()
+  })
   statusSelect.addEventListener('change', () => {
     syncEndDateState()
     syncOtherStatusVisibility()

@@ -52,22 +52,21 @@ export async function fetchMaintenanceRecords({ from, to, includeDeleted = false
   return data
 }
 
-// Distinct `work_scope` values previously used for this exact equipment,
+// Distinct `work_scope` values previously used anywhere in this system,
 // most recent first — backs recordModal.js's "+ New Record" autocomplete
 // (a <datalist>, not a generative/AI suggestion: SPEC.md "autocomplete
-// from history, not a generative model" explains why). Maintenance on a
-// given unit is often recurring/near-identical in wording ("Borescope
-// Inspection" etc.), so this is scoped to just that equipment rather than
-// every record in the system — a global list would be longer and less
-// relevant. Visible across every user's records, not just the caller's
-// own (maintenance_records_select has no created_by restriction, unlike
-// the update policy) — deliberate: the point is "what's commonly written
-// for this unit," not "what I personally wrote before."
-export async function fetchPriorWorkScopes(equipmentId, { limit = 20 } = {}) {
+// from history, not a generative model" explains why). Scoped to the
+// system (not just the one equipment being edited, which is narrower):
+// SPEC.md "autocomplete suggestions scoped to system, not equipment".
+// Visible across every user's records, not just the caller's own
+// (maintenance_records_select has no created_by restriction, unlike the
+// update policy) — deliberate: the point is "what's commonly written in
+// this system," not "what I personally wrote before."
+export async function fetchPriorWorkScopes(systemId, { limit = 20 } = {}) {
   const { data, error } = await supabase
     .from('maintenance_records')
     .select('work_scope')
-    .eq('equipment_id', equipmentId)
+    .eq('system_id', systemId)
     .is('deleted_at', null)
     .order('start_date', { ascending: false })
     .limit(100)

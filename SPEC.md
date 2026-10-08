@@ -233,6 +233,17 @@ paid API this architecture has nowhere to call from.
   request-id counter) since switching equipment quickly fires several
   overlapping fetches.
 
+**Follow-up (2026-10-08)** — rescoped to the whole **system**, not just
+the one equipment being edited: `fetchPriorWorkScopes()` now filters on
+`system_id` instead of `equipment_id`, and the refetch trigger moved from
+the Equipment dropdown to the System dropdown (switching equipment within
+the same system no longer refetches — same list either way, since it's no
+longer equipment-specific). Verified against the real code path (a fake
+`supabase` query-builder recording the `.eq()` calls `renderMaintenanceForm`
+actually makes): selecting a system shows that system's combined
+suggestions, switching equipment within it doesn't trigger a second fetch,
+and switching system does.
+
 ## Fix (2026-10-06) — Swap direction in History/exports was unclear
 
 The History table and both exports labeled a Swap event with just an
