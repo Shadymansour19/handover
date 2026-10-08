@@ -185,11 +185,21 @@ export async function renderMainView(container, { session, onSignOut }) {
   // modal is open (modal.js's overlay is the one place .modal-overlay
   // exists), so typing elsewhere in the app is never hijacked. Hints live
   // in each button's title (set above) rather than a separate help UI.
+  //
+  // Keyed by event.code (the physical key position), not event.key (the
+  // character that key produces) — event.key is keyboard-layout-dependent,
+  // e.g. AZERTY swaps the W/Z keys relative to QWERTY, so a user on a
+  // mismatched OS-layout/physical-keyboard combo could press the key
+  // labeled "W" and have it report a completely different character,
+  // silently breaking just that one shortcut while the others (whose
+  // letters happen not to move between layouts) kept working. event.code
+  // always names the same physical key regardless of layout, which is
+  // what the printed "(W)" hint actually refers to.
   const SHORTCUT_KEYS = {
-    n: '#fab-new-record',
-    f: '#fab-filter',
-    w: '#fab-export',
-    p: '#fab-export-pdf',
+    KeyN: '#fab-new-record',
+    KeyF: '#fab-filter',
+    KeyW: '#fab-export',
+    KeyP: '#fab-export-pdf',
   }
 
   function isTypingTarget(el) {
@@ -203,7 +213,7 @@ export async function renderMainView(container, { session, onSignOut }) {
     if (isTypingTarget(event.target)) return
     if (document.querySelector('.modal-overlay')) return
 
-    const selector = SHORTCUT_KEYS[event.key.toLowerCase()]
+    const selector = SHORTCUT_KEYS[event.code]
     if (!selector) return
 
     const button = container.querySelector(selector)

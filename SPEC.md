@@ -128,6 +128,28 @@ press while a modal is already open adds no second overlay, typing `n`
 into a text field does nothing but type, `Ctrl+F` is a no-op, and `W`/`P`
 each produce a real file download.
 
+## Fix (2026-10-08) — W shortcut silently did nothing
+
+Reported: pressing W never triggered the Word export, while N/F/P all
+worked. Root cause: the shortcut map was keyed on `event.key` — the
+*character* a keypress produces, which is keyboard-layout-dependent (e.g.
+AZERTY swaps the physical W/Z keys relative to QWERTY). On a mismatched
+OS-layout/physical-keyboard combo, pressing the key labeled "W" can report
+a different character entirely, so it simply never matched anything in
+`SHORTCUT_KEYS` — direct clicks on the button were unaffected since they
+don't involve a keyboard character at all, which is why only this one
+shortcut broke while the others (whose letters don't move in that swap)
+kept working fine. Fixed by keying `SHORTCUT_KEYS` on `event.code` instead
+— the *physical key position*, layout-independent, which is what the
+printed "(W)" hint actually refers to.
+
+Verified by reproducing the exact failure: in the same harness as above,
+dispatched a raw `KeyboardEvent` with `code: 'KeyW'` but `key: 'z'`
+(simulating the AZERTY mismatch) — with the old `event.key`-keyed lookup
+this produced no download at all (confirming it reproduces the report
+exactly), and with the `event.code` fix it correctly triggers the Word
+export; re-confirmed N/F/P still work unchanged.
+
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 
 Three smaller, independent features landed together.
