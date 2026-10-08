@@ -150,6 +150,18 @@ this produced no download at all (confirming it reproduces the report
 exactly), and with the `event.code` fix it correctly triggers the Word
 export; re-confirmed N/F/P still work unchanged.
 
+**Follow-up (2026-10-08)** — W still didn't work for the reporting user
+even after the `event.code` fix above, meaning the layout-mismatch theory
+wasn't the whole story (or wasn't the cause at all) for them specifically
+— something (a browser extension, an OS/browser-level binding, or an
+input method) was most likely consuming that physical key before it ever
+reached the page's `keydown` listener, which no code change here can work
+around. Rather than keep chasing an environment-specific cause, switched
+Export Word's shortcut to **D** ("Docs") instead of W — picked as an
+unrelated letter unlikely to collide with whatever that was. Verified in
+the harness: D now triggers the `.docx` download, W is correctly inert
+(SHORTCUT_KEYS no longer has an entry for it), and N/F/P are unaffected.
+
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 
 Three smaller, independent features landed together.
