@@ -24,6 +24,34 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Fix (2026-10-08) — row-menu hidden behind the desktop sticky toolbar
+
+Reported: opening a row's ⋮ menu on desktop could hide some or all of its
+options. Root cause: `.row-menu__dropdown` (records.css) had `z-index: 10`
+from before the desktop toolbar existed — fine against plain table rows,
+but the desktop toolbar (`.fab-cluster`, see the FAB cluster decision
+below) became `position: sticky` with a solid background at `z-index: 40`,
+so any dropdown overlapping that bar's rectangle rendered behind it
+instead of on top. Two distinct ways this happens: a row scrolled to sit
+right at the sticky bar's edge, and — the case actually reproduced below —
+`lib/dropdownPosition.js` flipping a dropdown to open *upward*
+(`positionDropdownToFit`, for a row with more room above than below) on a
+short enough viewport that the upward-opening menu's top lands inside the
+toolbar's 0–68px band. Fixed by raising `.row-menu__dropdown` to
+`z-index: 50`, above the toolbar, still below modals (100) and
+toasts (150/200).
+
+Verified by reproducing the exact failure, not just reasoning about the
+numbers: a temporary harness mounted the real `mainView.js` (data calls
+stubbed, restored via `git checkout` right after) with enough synthetic
+equipment to make the list scroll, at a short viewport height chosen so a
+row's dropdown flipped upward into the toolbar's band. With the old
+`z-index: 10`, `document.elementFromPoint()` at a point inside the
+dropdown's own rectangle returned the toolbar's PDF button, not the
+dropdown's — confirming the menu really was unclickable there. With
+`z-index: 50`, the same point correctly returned the dropdown's own View
+button.
+
 ## Decision (2026-10-18) — FAB cluster: toolbar on desktop, floating on mobile
 
 The bottom-right floating dots button (Add Record/Filter/Export Word/

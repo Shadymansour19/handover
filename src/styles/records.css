@@ -306,7 +306,12 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
-  z-index: 10;
+  /* Above the desktop toolbar's sticky .fab-cluster (layout.css, z-index
+     40) — a row right under it (any row, once scrolled) would otherwise
+     open its menu partly or fully behind that solid-background bar. Below
+     modals (100)/toasts (150/200): those are rarer and more important,
+     and a menu is always closed before either one opens anyway. */
+  z-index: 50;
 }
 
 /* Added by lib/dropdownPosition.js when there isn't enough room below the
