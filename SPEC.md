@@ -150,17 +150,20 @@ this produced no download at all (confirming it reproduces the report
 exactly), and with the `event.code` fix it correctly triggers the Word
 export; re-confirmed N/F/P still work unchanged.
 
-**Follow-up (2026-10-08)** — W still didn't work for the reporting user
-even after the `event.code` fix above, meaning the layout-mismatch theory
-wasn't the whole story (or wasn't the cause at all) for them specifically
-— something (a browser extension, an OS/browser-level binding, or an
-input method) was most likely consuming that physical key before it ever
-reached the page's `keydown` listener, which no code change here can work
-around. Rather than keep chasing an environment-specific cause, switched
-Export Word's shortcut to **D** ("Docs") instead of W — picked as an
-unrelated letter unlikely to collide with whatever that was. Verified in
-the harness: D now triggers the `.docx` download, W is correctly inert
-(SHORTCUT_KEYS no longer has an entry for it), and N/F/P are unaffected.
+**Follow-up (2026-10-08)** — W still didn't work even after the
+`event.code` fix above, and neither did a first attempt switching it to D.
+The user confirmed what was actually going on: pressing W, A, S, *or* D
+anywhere on their machine (not just this app) pops up an on-screen counter
+that increments/decrements/toggles — their Ubuntu install has something
+(most likely a key-remapping/accessibility tool) globally bound to the
+whole WASD cluster, swallowing the keypress at the OS level before it ever
+reaches the browser. No code change here can work around an OS-level
+interception; the actual fix is just picking a letter outside that
+cluster. Export Word's shortcut is now **O** (second letter of "wOrd").
+Verified in the harness: O triggers the `.docx` download, and N/F/P are
+unaffected. (W and D are both correctly inert now — neither has an entry
+in `SHORTCUT_KEYS` — though that's moot for this user either way, since
+their OS claims those keys before the page ever sees them.)
 
 ## Decision (2026-10-15) — stale-record flagging, self-undo, date presets
 

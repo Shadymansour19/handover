@@ -67,7 +67,7 @@ export async function renderMainView(container, { session, onSignOut }) {
               title="Actions" aria-label="Actions" aria-haspopup="true" aria-expanded="false">${ICONS.dots}</button>
       <div class="fab-actions" id="fab-actions" hidden>
         <button type="button" class="fab fab--sub" id="fab-export-pdf" title="Export PDF (P)" aria-label="Export PDF">${ICONS.pdf}</button>
-        <button type="button" class="fab fab--sub" id="fab-export" title="Export Word (D)" aria-label="Export Word">${ICONS.export}</button>
+        <button type="button" class="fab fab--sub" id="fab-export" title="Export Word (O)" aria-label="Export Word">${ICONS.export}</button>
         <button type="button" class="fab fab--sub" id="fab-filter" title="Filter records (F)" aria-label="Filter records">${ICONS.filter}</button>
         <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record (N)" aria-label="Add record">${ICONS.plus}</button>
       </div>
@@ -195,16 +195,18 @@ export async function renderMainView(container, { session, onSignOut }) {
   // letters happen not to move between layouts) kept working. event.code
   // always names the same physical key regardless of layout.
   //
-  // Export Word uses D ("Docs"), not W — switched after W still didn't
-  // work for one user even after the event.code fix above, pointing to
-  // something (an extension, OS/browser binding, or input method)
-  // consuming that specific physical key before it ever reaches this
-  // handler, which no code change here can work around. D was picked as
-  // an unrelated letter unlikely to collide with whatever that was.
+  // Export Word uses O (second letter of "wOrd"), not W or D — both tried
+  // and both failed for one user, who confirmed pressing W/A/S/D anywhere
+  // (not just this app) pops up an on-screen counter that increments/
+  // decrements/toggles, i.e. their OS has something globally bound to that
+  // whole WASD cluster that swallows the keypress before it ever reaches
+  // the browser. No code change here can work around an OS-level
+  // interception, so this just picks a letter outside that cluster
+  // instead of chasing it further.
   const SHORTCUT_KEYS = {
     KeyN: '#fab-new-record',
     KeyF: '#fab-filter',
-    KeyD: '#fab-export',
+    KeyO: '#fab-export',
     KeyP: '#fab-export-pdf',
   }
 
