@@ -54,6 +54,9 @@ handover/
     │   ├── constants.js        # WORK_STATUSES, ACTIONS, terminal-status check — mirror the DB enums
     │   ├── dateRange.js        # default "last 7 days" + Last 30 days/This month presets
     │   │                       # (filterModal.js); ISO-date + datetime-local INPUT-value helpers
+    │   ├── filterPersistence.js    # loadSavedFilter()/saveFilter() — remembers the main view's
+    │   │                           # date range/search/"show deleted"/Maintenance-or-Operations
+    │   │                           # view across a page refresh, via localStorage
     │   ├── dateFormat.js       # dd-mm-yyyy DISPLAY formatting — never used for input values (see
     │   │                       # dateRange.js; those must stay browser-native yyyy-mm-dd)
     │   ├── staleness.js        # staleDays(): a non-terminal-status record past its own

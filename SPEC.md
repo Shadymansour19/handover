@@ -24,6 +24,41 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-18) — filter persists across refresh
+
+Asked whether the current filter survives a page refresh — it didn't:
+`currentRange`/`currentSearch`/`includeDeleted`/`currentView` were all
+plain in-memory variables in `mainView.js`, reset to their hardcoded
+defaults (`getDefaultRange()`'s last 7 days, empty search, deleted hidden,
+Maintenance view) every time the view re-mounts, with nothing anywhere in
+the app reading or writing `localStorage` before this.
+
+`lib/filterPersistence.js` now saves `{ from, to, search, includeDeleted,
+view }` as one JSON blob under `localStorage['handover-filter']`, written
+whenever the Filter dialog's Apply is used or the Maintenance/Operations
+toggle is clicked, and read once at `mainView.js` mount to seed those same
+four variables (falling back to the normal defaults if nothing's saved,
+or if what's saved doesn't parse into the expected shape — covers both
+"never saved" and "saved by a since-changed version of this app" with the
+same fallback, rather than needing a schema migration). Plain
+`localStorage`, not scoped per-user: this is "what this browser was last
+looking at," the same category of thing as a scroll position, not account
+state — Supabase Auth's own session storage is untouched.
+
+Persists the literal date range chosen, not which preset (if any)
+produced it — picking "Last 7 days" today and coming back tomorrow
+restores yesterday's exact dates, not a freshly-recomputed "last 7 days
+from now." Simplest option, and arguably still correct: the dates
+themselves are what the person was intentionally looking at.
+
+Verified directly: set a distinctive custom range/search/"show deleted"/
+Operations view through the real UI, confirmed the exact JSON landed in
+`localStorage`, then did an actual `page.reload()` (not a fresh re-render)
+and confirmed every one of the four values came back — the active toggle
+button, and the Filter dialog's own fields when reopened. Separately
+confirmed a browser with nothing saved still gets the normal defaults
+untouched.
+
 ## Decision (2026-10-18) — Pending field, simple formatting, case rules, spellcheck, operations toggle
 
 Six independent features landed together.

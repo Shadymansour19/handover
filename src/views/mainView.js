@@ -15,6 +15,7 @@ import {
 import { fetchOwnProfile, fetchProfileNames, fetchGrantableUsers } from '../data/profiles.js'
 import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
 import { getDefaultRange } from '../lib/dateRange.js'
+import { loadSavedFilter, saveFilter } from '../lib/filterPersistence.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
 import { openOperationEventModal } from './operationEventModal.js'
@@ -161,14 +162,21 @@ export async function renderMainView(container, { session, onSignOut }) {
   setupToggle(container.querySelector('#user-menu-trigger'), container.querySelector('#user-menu-dropdown'))
   setupToggle(container.querySelector('#fab-toggle'), container.querySelector('#fab-actions'))
 
-  let currentRange = range
-  let includeDeleted = false
+  // Restores the date range/search/"show deleted"/view from the last time
+  // this browser touched the filter (lib/filterPersistence.js, SPEC.md
+  // "filter persists across refresh") — falls back to the normal defaults
+  // below for a first-ever visit, private browsing, or anything saved by
+  // a since-changed shape of this data.
+  const savedFilter = loadSavedFilter()
+
+  let currentRange = savedFilter ? { from: savedFilter.from, to: savedFilter.to } : range
+  let includeDeleted = savedFilter?.includeDeleted ?? false
   // Case-insensitive substring match against work_scope/detailed_steps/
   // comment (see fetchMaintenanceRecords) — main-view-only, deliberately
   // not threaded into fetchExportData()'s own fetches below: an export is
   // meant to be the complete official record for the date range, not
   // whatever the admin happened to be searching for on screen at the time.
-  let currentSearch = ''
+  let currentSearch = savedFilter?.search ?? ''
   // Stale-records popup (staleRecordsModal.js) is a one-time-per-session
   // nudge, not something to re-show on every reload() — and reload() now
   // fires constantly (live sync, every own action), not just at mount.
@@ -178,17 +186,37 @@ export async function renderMainView(container, { session, onSignOut }) {
   // every reload() regardless of which is on screen (see reload() below),
   // so switching views just re-renders from already-loaded state rather
   // than triggering a fresh fetch.
-  let currentView = 'maintenance'
+  let currentView = savedFilter?.view ?? 'maintenance'
+
+  function persistCurrentFilter() {
+    saveFilter({
+      from: currentRange.from,
+      to: currentRange.to,
+      search: currentSearch,
+      includeDeleted,
+      view: currentView,
+    })
+  }
+
+  function syncViewToggleButtons() {
+    container.querySelectorAll('.view-toggle__button').forEach((b) => {
+      const active = b.dataset.view === currentView
+      b.classList.toggle('active', active)
+      b.setAttribute('aria-selected', String(active))
+    })
+  }
+
+  // The toggle's markup above always renders with "Maintenance" marked
+  // active — this corrects it immediately if a saved filter restored a
+  // different view, before the first reload() ever paints anything.
+  syncViewToggleButtons()
 
   container.querySelectorAll('.view-toggle__button').forEach((button) => {
     button.addEventListener('click', () => {
       if (button.dataset.view === currentView) return
       currentView = button.dataset.view
-      container.querySelectorAll('.view-toggle__button').forEach((b) => {
-        const active = b.dataset.view === currentView
-        b.classList.toggle('active', active)
-        b.setAttribute('aria-selected', String(active))
-      })
+      syncViewToggleButtons()
+      persistCurrentFilter()
       renderRecordsContainer()
     })
   })
@@ -216,6 +244,7 @@ export async function renderMainView(container, { session, onSignOut }) {
         currentRange = { from: next.from, to: next.to }
         currentSearch = next.search
         includeDeleted = next.includeDeleted
+        persistCurrentFilter()
         reload()
       },
     })
