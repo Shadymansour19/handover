@@ -24,6 +24,110 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-18) — Pending field, simple formatting, case rules, spellcheck, operations toggle
+
+Six independent features landed together.
+
+**`pending` field** (`maintenance_records.pending`, migration
+`20261018000000_add_pending_field.sql`) — optional free-text, same
+\n-separated-lines-as-bullets convention as `detailed_steps`/`comment`,
+shown in the form, the View modal, and both exports right after Comments.
+No trigger/RLS changes — nullable, no default, not involved in any
+business rule.
+
+**Simple list formatting** (`lib/listFormatToolbar.js`) — a small
+Indent/Outdent toolbar above every multi-line field (`detailed_steps`,
+`comment`, `pending`, and operation events' own `comment`), plus Tab/
+Shift+Tab inside the field itself doing the same thing. A line's leading
+tab characters set its nesting depth; `lib/bullets.js` (the View modal)
+renders that as a real nested `<ul>`/`<li>` tree, and `docxExport.js`/
+`pdfExport.js` render it as nested Word list levels / pdfmake's own nested
+`ul` respectively. Backward compatible by construction, not by a special
+case: existing data has no leading tabs, so it all renders as the same
+flat depth-0 list it always did.
+
+Deliberately NOT a toggleable "make this line a bullet / not a bullet"
+control — every line in these fields has always been treated as a bullet
+(existing stored data has no per-line marker to say otherwise), so adding
+an explicit "plain paragraph" line type would need a new marker and would
+silently reinterpret every already-saved record. Indentation alone is
+purely additive.
+
+**Title case / sentence case on submit** (`lib/textCase.js`) —
+`work_scope` gets full title case (`toTitleCase()`, small words like
+"the"/"of"/"and" stay lowercase unless first/last word); every other
+multi-line field gets sentence case (`capitalizeLines()`: capitalizes the
+first letter of each non-empty line, i.e. each bullet point, preserving
+any leading indentation tabs). Applied once, at submit time — not live as
+the user types, so text never jumps around under their cursor mid-edit.
+
+**Spellcheck on submit** (`lib/spellcheck.js`, `lib/spellcheckFlow.js`) —
+on submit (after case normalization), every word in `work_scope`,
+`detailed_steps`, `comment`, and `pending` (or just `comment`, for an
+operation event) is checked against a real Hunspell dictionary
+(`nspell` + `dictionary-en`, both pure JS/data with zero network
+dependency — same "no backend of this app's own to call from" reasoning
+as the work-scope autocomplete decision, not a hosted/paid spellcheck
+API). Every misspelled word gets its own dialog, one at a time, with up to
+6 suggestions to pick from or a Skip button, looping until every
+misspelling across every field has been resolved one way or the other
+before the record actually saves.
+
+`dictionary-en`'s own package.json only exports `./index.js` — a
+Node-only loader (`fs.readFile` + `import.meta.url`) that doesn't work in
+a browser bundle at all — so its `.aff`/`.dic` data files are pulled in
+directly as text via Vite's `?raw` import instead
+(`/node_modules/dictionary-en/index.{aff,dic}?raw`, an absolute path
+rather than the bare package specifier, since the exports restriction
+only blocks the latter), bypassing that loader entirely. Both the
+dictionary (~550KB) and `spellcheck.js` itself are lazy-loaded (dynamic
+`import()`, triggered from the submit handlers) and excluded from the
+PWA's precache (`vite.config.js`'s `workbox.globIgnores`) — same reasoning
+as `docx`/`pdfmake` already got: large, on-demand only, and a submit
+needs a live Supabase write regardless of what's cached.
+
+**Maintenance/Operations toggle** (`mainView.js`'s `.view-toggle`,
+`operationEventsTable.js`) — a plain two-way switch on the main view
+between the existing maintenance-records table and a new, equivalent
+top-level table of operation events (grouped by System/Equipment exactly
+like maintenance records, instead of scoped to one unit's full history
+the way the existing History modal is — that stays too, as the
+full-history/admin-restore view). Both datasets are fetched by every
+`reload()` regardless of which is on screen, so toggling is a pure
+re-render against already-loaded state, not a new fetch; the "+ Add"
+button's New Record modal opens on whichever tab matches the view
+currently showing. `operationEventsTable.js` reuses `historyModal.js`'s
+`operationActionLabel()` (short table-preview form) and
+`openViewOperationEventModal()`/`operationActionDescription()` (the View
+modal's full descriptive sentence) directly rather than duplicating them —
+unlike `docxExport.js`/`pdfExport.js`'s own independent copies, this is
+the exact same table-preview/View-modal context, not a different
+rendering target. `operation_event_access` was added to `mainView.js`'s
+realtime subscription list alongside the existing
+`maintenance_record_access`, so a just-granted user's Edit/Delete lights
+up live in the new view too.
+
+Known limitation: the Filter dialog's text search only ever searched
+`work_scope`/`detailed_steps`/`comment` on maintenance records
+(`fetchMaintenanceRecords`) — it does not search operation events' own
+comments, so switching to the Operations view with an active search term
+currently just shows the full unfiltered list. Not addressed here; worth
+revisiting if it turns out to matter in practice.
+
+Verified directly, not just reasoned about: a temporary harness mounted
+the real `recordModal.js`/`operationEventModal.js` forms and `mainView.js`
+itself (data calls stubbed, restored via backup/`git checkout` right
+after each pass) — confirmed the Pending field saves and displays, Indent/
+Outdent produces correctly nested bullets (web View modal, and inspected
+via real generated `.docx` XML and `pdftotext` on a real generated `.pdf`
+for the nesting), title/sentence case apply exactly as specified including
+the small-words exceptions, the spellcheck dialog loop correctly applies a
+chosen suggestion and leaves a skipped word untouched across two
+consecutive misspellings, and the toggle correctly switches rendered
+content, routes row-menu actions (view/edit/delete, confirmed via the
+real undo-toast appearing) to the right data set, and opens "+ Add" on the
+matching tab.
+
 ## Fix (2026-10-08) — row-menu hidden behind the desktop sticky toolbar
 
 Reported: opening a row's ⋮ menu on desktop could hide some or all of its

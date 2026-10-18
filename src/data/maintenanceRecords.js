@@ -2,7 +2,7 @@ import { supabase } from '../supabaseClient.js'
 
 const SELECT_COLUMNS =
   'id, system_id, equipment_id, start_date, end_date, work_scope, ' +
-  'detailed_steps, work_status, work_status_other, comment, created_by, ' +
+  'detailed_steps, work_status, work_status_other, comment, pending, created_by, ' +
   'deleted_at, updated_at'
 
 // PostgREST's `or=(...)` filter syntax treats `,`/`(`/`)` as structural

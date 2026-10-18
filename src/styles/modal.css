@@ -179,8 +179,37 @@
   padding-left: 1.1rem;
 }
 
+/* lib/listFormatToolbar.js — sits directly above the textarea it's
+   attached to (inserted as its previous sibling), so this sets no margin
+   of its own below; the field's existing label/textarea spacing already
+   handles that. Small square icon buttons, matching the row-menu
+   trigger's own sizing (records.css) rather than the form's normal full
+   button padding, which would look oversized for a two-icon strip. */
+.list-format-toolbar {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.list-format-toolbar button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .empty-field {
   margin: 0;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* lib/spellcheckFlow.js's per-word suggestion dialog. */
+.spellcheck-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
 }

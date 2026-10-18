@@ -13,6 +13,9 @@ import {
   getStatus,
   validateOperationEvent,
 } from '../lib/equipmentStatus.js'
+import { capitalizeLines } from '../lib/textCase.js'
+import { attachListFormatToolbar } from '../lib/listFormatToolbar.js'
+import { runSpellcheck } from '../lib/spellcheckFlow.js'
 
 // Fills `container` with the Operation form and wires it. Field order
 // (Action -> Timestamp -> System -> Equipment -> Secondary -> Comment)
@@ -96,6 +99,8 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
   const secondarySelect = container.querySelector('#field-secondary')
   const errorEl = container.querySelector('#operation-form-error')
   const form = container.querySelector('#operation-form')
+
+  attachListFormatToolbar(container.querySelector('#field-comment'))
 
   function trackedEquipment(systemId) {
     const system = trackedSystems.find((s) => s.id === systemId)
@@ -183,13 +188,19 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
       system_id: systemSelect.value,
       equipment_id: equipmentSelect.value,
       secondary_equipment_id: actionSelect.value === 'Swap' ? secondarySelect.value : null,
-      comment: container.querySelector('#field-comment').value,
+      comment: capitalizeLines(container.querySelector('#field-comment').value),
     }
 
     const submitButton = form.querySelector('button[type="submit"]')
     submitButton.disabled = true
 
     try {
+      // Loops over every misspelled word in the comment, one dialog at a
+      // time (lib/spellcheckFlow.js) — after sentence case above, so it
+      // checks the text that's actually about to be saved.
+      const checkedFields = await runSpellcheck(fields, ['comment'])
+      Object.assign(fields, checkedFields)
+
       if (!isEdit) {
         // Re-fetch right before submit rather than trusting the snapshot
         // the modal opened with — closes most of the race window between

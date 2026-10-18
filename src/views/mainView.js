@@ -5,20 +5,28 @@ import {
   restoreMaintenanceRecord,
   hardDeleteMaintenanceRecord,
 } from '../data/maintenanceRecords.js'
-import { fetchEquipmentStatuses, fetchOperationEvents } from '../data/operationEvents.js'
+import {
+  fetchEquipmentStatuses,
+  fetchOperationEvents,
+  softDeleteOperationEvent,
+  restoreOperationEvent,
+  hardDeleteOperationEvent,
+} from '../data/operationEvents.js'
 import { fetchOwnProfile, fetchProfileNames, fetchGrantableUsers } from '../data/profiles.js'
 import { fetchMyRecordAccessIds } from '../data/recordAccess.js'
 import { getDefaultRange } from '../lib/dateRange.js'
 import { escapeHTML } from '../lib/html.js'
 import { openMaintenanceRecordModal } from './recordModal.js'
+import { openOperationEventModal } from './operationEventModal.js'
 import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
-import { openHistoryModal } from './historyModal.js'
+import { openHistoryModal, openViewOperationEventModal, operationActionDescription } from './historyModal.js'
 import { openManageUsersModal } from './manageUsersModal.js'
 import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 import { openChangePasswordModal } from './changePasswordModal.js'
 import { openFilterModal } from './filterModal.js'
 import { renderSystemsHTML } from './recordsTable.js'
+import { renderOperationSystemsHTML } from './operationEventsTable.js'
 import { ICONS } from '../lib/icons.js'
 import { downloadBlob } from '../lib/downloadBlob.js'
 import { subscribeToChanges } from '../lib/realtime.js'
@@ -37,13 +45,16 @@ export async function renderMainView(container, { session, onSignOut }) {
   const state = {
     systems: [],
     records: [],
+    operationEvents: [],
     profile: null,
     equipmentStatuses: new Map(),
     profileNames: new Map(),
-    // Which maintenance records the CURRENT user has been granted access
-    // to beyond their own — only ever populated for a non-admin session
-    // (an admin already has full access to everything, see reload()).
+    // Which maintenance records / operation events the CURRENT user has
+    // been granted access to beyond their own — only ever populated for a
+    // non-admin session (an admin already has full access to everything,
+    // see reload()).
     grantedRecordIds: new Set(),
+    grantedEventIds: new Set(),
   }
 
   container.innerHTML = `
@@ -72,6 +83,12 @@ export async function renderMainView(container, { session, onSignOut }) {
         <button type="button" class="fab fab--sub" id="fab-new-record" title="Add record (N)" aria-label="Add record">${ICONS.plus}</button>
       </div>
     </div>
+    <div class="view-toggle" id="view-toggle" role="tablist">
+      <button type="button" class="view-toggle__button active" data-view="maintenance"
+              role="tab" aria-selected="true">Maintenance</button>
+      <button type="button" class="view-toggle__button" data-view="operation"
+              role="tab" aria-selected="false">Operations</button>
+    </div>
     <div id="records-container" class="records-container">
       <p class="loading">Loading…</p>
     </div>
@@ -87,14 +104,19 @@ export async function renderMainView(container, { session, onSignOut }) {
   // leak class as the stale-UI-after-tab-refocus bug fixed 2026-09-23,
   // just via a different trigger (a DB change instead of a spurious auth
   // event).
-  // maintenance_record_access (not operation_event_access too — this view
-  // never shows operation events or their edit buttons at all, so a grant
-  // change there has no visible effect here; historyModal.js subscribes
-  // to that one instead) is what makes a just-granted user's Edit/Delete
-  // light up live instead of needing an unrelated change elsewhere to
-  // trigger the next reload().
+  // maintenance_record_access / operation_event_access are what make a
+  // just-granted user's Edit/Delete light up live instead of needing an
+  // unrelated change elsewhere to trigger the next reload() — both are
+  // needed now that this view renders operation events' own Edit/Delete
+  // too (the Maintenance/Operations toggle, SPEC.md), not just
+  // maintenance records'.
   const unsubscribeFromChanges = subscribeToChanges(
-    ['maintenance_records', 'operation_events', 'maintenance_record_access'],
+    [
+      'maintenance_records',
+      'operation_events',
+      'maintenance_record_access',
+      'operation_event_access',
+    ],
     reload
   )
 
@@ -152,10 +174,33 @@ export async function renderMainView(container, { session, onSignOut }) {
   // fires constantly (live sync, every own action), not just at mount.
   let staleCheckDone = false
 
+  // Maintenance/Operations toggle (SPEC.md) — both datasets are fetched by
+  // every reload() regardless of which is on screen (see reload() below),
+  // so switching views just re-renders from already-loaded state rather
+  // than triggering a fresh fetch.
+  let currentView = 'maintenance'
+
+  container.querySelectorAll('.view-toggle__button').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.dataset.view === currentView) return
+      currentView = button.dataset.view
+      container.querySelectorAll('.view-toggle__button').forEach((b) => {
+        const active = b.dataset.view === currentView
+        b.classList.toggle('active', active)
+        b.setAttribute('aria-selected', String(active))
+      })
+      renderRecordsContainer()
+    })
+  })
+
   container.querySelector('#fab-new-record').addEventListener('click', () => {
     openNewRecordModal({
       systems: state.systems,
       equipmentStatuses: state.equipmentStatuses,
+      // Opens on whichever tab matches the view currently on screen — the
+      // modal still lets you switch tabs either way, this just saves the
+      // extra click for the common case.
+      initialTab: currentView,
       onSaved: reload,
     })
   })
@@ -357,6 +402,18 @@ export async function renderMainView(container, { session, onSignOut }) {
       return
     }
 
+    // Operation-event rows (operationEventsTable.js) carry data-record-type
+    // so they route here instead of falling through to the maintenance
+    // handling below — the two share action names (view/edit/delete/...)
+    // but not data shape, and a maintenance row never sets this attribute
+    // at all, so that path is completely unaffected.
+    if (button.dataset.recordType === 'operation') {
+      const operationEvent = state.operationEvents.find((e) => e.id === button.dataset.eventId)
+      if (!operationEvent) return
+      handleOperationEventAction(button.dataset.action, operationEvent)
+      return
+    }
+
     const record = state.records.find((r) => r.id === button.dataset.recordId)
     if (!record) return
 
@@ -469,6 +526,116 @@ export async function renderMainView(container, { session, onSignOut }) {
     }
   }
 
+  // Mirrors the maintenance-record handlers above, one level up: those
+  // dispatch from a record's own row-menu click; this dispatches from an
+  // operation-event row's (operationEventsTable.js). Kept here rather than
+  // duplicating historyModal.js's own nearly-identical dispatch, since
+  // historyModal.js only ever shows ONE equipment's events at a time (its
+  // `equipment` is fixed for the life of that modal) while this view spans
+  // every tracked equipment at once — the two aren't quite the same shape.
+  function allEquipmentList() {
+    return state.systems.flatMap((s) => s.equipment)
+  }
+
+  function handleOperationEventAction(action, operationEvent) {
+    if (action === 'view') {
+      const nameOf = (id) => allEquipmentList().find((e) => e.id === id)?.name ?? '—'
+      openViewOperationEventModal({
+        event: operationEvent,
+        actionLabel: operationActionDescription(operationEvent, operationEvent.equipment_id, nameOf),
+        createdByName: state.profileNames.get(operationEvent.created_by) ?? '—',
+      })
+    } else if (action === 'edit') {
+      openOperationEventModal({
+        mode: 'edit',
+        record: operationEvent,
+        systems: state.systems,
+        equipmentStatuses: state.equipmentStatuses,
+        onSaved: reload,
+      })
+    } else if (action === 'delete') {
+      handleOperationDelete(operationEvent)
+    } else if (action === 'restore') {
+      handleOperationRestore(operationEvent)
+    } else if (action === 'hard-delete') {
+      handleOperationHardDelete(operationEvent)
+    } else if (action === 'manage-access') {
+      handleOperationManageAccess(operationEvent)
+    }
+  }
+
+  async function handleOperationManageAccess(operationEvent) {
+    try {
+      const users = await fetchGrantableUsers()
+      openManageRecordAccessModal({
+        recordType: 'operation',
+        recordId: operationEvent.id,
+        creatorId: operationEvent.created_by,
+        users,
+        onSaved: reload,
+      })
+    } catch (err) {
+      window.alert(err.message || 'Failed to load users.')
+    }
+  }
+
+  async function handleOperationRestore(operationEvent) {
+    if (!window.confirm('Restore this operation event?')) return
+    try {
+      await restoreOperationEvent(operationEvent.id)
+      reload()
+    } catch (err) {
+      window.alert(err.message || 'Failed to restore event.')
+    }
+  }
+
+  async function handleOperationHardDelete(operationEvent) {
+    if (
+      !window.confirm(
+        'Permanently delete this operation event? This cannot be undone — there is no restore after this.'
+      )
+    ) {
+      return
+    }
+    try {
+      await hardDeleteOperationEvent(operationEvent.id)
+      reload()
+    } catch (err) {
+      window.alert(err.message || 'Failed to permanently delete event.')
+    }
+  }
+
+  async function handleOperationDelete(operationEvent) {
+    if (
+      !window.confirm(
+        'Delete this operation event? You can undo this for a few seconds right after; after that, only an admin can restore it.'
+      )
+    ) {
+      return
+    }
+    try {
+      await softDeleteOperationEvent(operationEvent.id)
+      reload()
+
+      const canUndo = state.profile?.role === 'admin' || operationEvent.created_by === session.user.id
+      if (canUndo) {
+        showUndoToast({
+          message: 'Deleted operation event.',
+          onUndo: async () => {
+            try {
+              await restoreOperationEvent(operationEvent.id)
+              reload()
+            } catch (err) {
+              window.alert(err.message || 'Failed to undo — ask an admin to restore it.')
+            }
+          },
+        })
+      }
+    } catch (err) {
+      window.alert(err.message || 'Failed to delete event.')
+    }
+  }
+
   // Proactively surfaces stale records (lib/staleness.js) to whoever can
   // act on them — admin sees every stale record, a regular user only the
   // ones they could actually edit (their own, or one they've been granted
@@ -500,28 +667,60 @@ export async function renderMainView(container, { session, onSignOut }) {
     })
   }
 
+  // Renders whichever of the two datasets matches currentView from
+  // already-loaded state — called both at the end of reload() and by the
+  // view-toggle click handler above, which only ever switches what's
+  // displayed, never re-fetches.
+  function renderRecordsContainer() {
+    const isAdmin = state.profile?.role === 'admin'
+    if (currentView === 'operation') {
+      recordsContainer.innerHTML = renderOperationSystemsHTML(
+        state.systems,
+        state.operationEvents,
+        { userId: session.user.id, isAdmin, grantedEventIds: state.grantedEventIds },
+        state.equipmentStatuses
+      )
+    } else {
+      recordsContainer.innerHTML = renderSystemsHTML(
+        state.systems,
+        state.records,
+        { userId: session.user.id, isAdmin, grantedRecordIds: state.grantedRecordIds },
+        state.equipmentStatuses,
+        Boolean(currentSearch.trim())
+      )
+    }
+  }
+
   async function reload() {
     recordsContainer.innerHTML = '<p class="loading">Loading…</p>'
     try {
       const profile = state.profile ?? (await fetchOwnProfile(session.user.id))
       const isAdmin = profile.role === 'admin'
 
-      const [systems, records, equipmentStatuses, profileNames, grantedRecordIds] = await Promise.all([
-        fetchSystemsWithEquipment(),
-        fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted, search: currentSearch }),
-        fetchEquipmentStatuses(),
-        fetchProfileNames(),
-        // An admin already has full access to everything — only worth
-        // fetching (and worth granting in the first place) for a regular
-        // user's own canEdit check.
-        isAdmin ? Promise.resolve(new Set()) : fetchMyRecordAccessIds('maintenance'),
-      ])
+      const [systems, records, operationEvents, equipmentStatuses, profileNames, grantedRecordIds, grantedEventIds] =
+        await Promise.all([
+          fetchSystemsWithEquipment(),
+          fetchMaintenanceRecords({ ...currentRange, includeDeleted: isAdmin && includeDeleted, search: currentSearch }),
+          // Same includeDeleted toggle as maintenance records (Filter
+          // dialog) — one "show deleted" setting governs both views
+          // rather than each needing its own.
+          fetchOperationEvents({ ...currentRange, includeDeleted: isAdmin && includeDeleted }),
+          fetchEquipmentStatuses(),
+          fetchProfileNames(),
+          // An admin already has full access to everything — only worth
+          // fetching (and worth granting in the first place) for a regular
+          // user's own canEdit check.
+          isAdmin ? Promise.resolve(new Set()) : fetchMyRecordAccessIds('maintenance'),
+          isAdmin ? Promise.resolve(new Set()) : fetchMyRecordAccessIds('operation'),
+        ])
       state.systems = systems
       state.records = records
+      state.operationEvents = operationEvents
       state.profile = profile
       state.equipmentStatuses = equipmentStatuses
       state.profileNames = profileNames
       state.grantedRecordIds = grantedRecordIds
+      state.grantedEventIds = grantedEventIds
 
       const currentUserEl = container.querySelector('#current-user')
       if (currentUserEl) {
@@ -530,13 +729,7 @@ export async function renderMainView(container, { session, onSignOut }) {
 
       container.querySelector('#manage-users').hidden = !isAdmin
 
-      recordsContainer.innerHTML = renderSystemsHTML(
-        systems,
-        records,
-        { userId: session.user.id, isAdmin, grantedRecordIds },
-        equipmentStatuses,
-        Boolean(currentSearch.trim())
-      )
+      renderRecordsContainer()
 
       if (!staleCheckDone) {
         staleCheckDone = true

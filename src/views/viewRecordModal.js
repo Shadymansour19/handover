@@ -20,6 +20,7 @@ export function openViewRecordModal(record, { systemName, equipmentName, created
       <dt>Status</dt><dd>${escapeHTML(statusLabel)}</dd>
       <dt>Detailed steps</dt><dd>${renderBulletList(record.detailed_steps)}</dd>
       <dt>Comment</dt><dd>${renderBulletList(record.comment)}</dd>
+      <dt>Pending</dt><dd>${renderBulletList(record.pending)}</dd>
       <dt>Created by</dt><dd>${escapeHTML(createdByName ?? '—')}</dd>
     </dl>
     <div class="modal-actions">

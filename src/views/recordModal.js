@@ -3,6 +3,9 @@ import { escapeHTML } from '../lib/html.js'
 import { openModal } from '../lib/modal.js'
 import { WORK_STATUSES, isTerminalStatus } from '../lib/constants.js'
 import { todayISO } from '../lib/dateRange.js'
+import { toTitleCase, capitalizeLines } from '../lib/textCase.js'
+import { attachListFormatToolbar } from '../lib/listFormatToolbar.js'
+import { runSpellcheck } from '../lib/spellcheckFlow.js'
 
 // Fills `container` with the Maintenance form and wires it — no modal
 // opening here, so this can be embedded either standalone (edit, via
@@ -20,6 +23,7 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
     work_status: WORK_STATUSES[0],
     work_status_other: '',
     comment: '',
+    pending: '',
   }
 
   const systemOptions = systems
@@ -71,6 +75,9 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       <label>Comment (one point per line)
         <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
       </label>
+      <label>Pending (optional — one point per line)
+        <textarea id="field-pending" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.pending ?? '')}</textarea>
+      </label>
       <p id="record-form-error" class="status status--error" hidden></p>
       <div class="modal-actions">
         <button type="button" id="record-cancel">Cancel</button>
@@ -88,6 +95,10 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
   const errorEl = container.querySelector('#record-form-error')
   const form = container.querySelector('#record-form')
   const workScopeSuggestions = container.querySelector('#field-work-scope-suggestions')
+
+  attachListFormatToolbar(container.querySelector('#field-detailed-steps'))
+  attachListFormatToolbar(container.querySelector('#field-comment'))
+  attachListFormatToolbar(container.querySelector('#field-pending'))
 
   function populateEquipment(systemId, selectedEquipmentId) {
     const system = systems.find((s) => s.id === systemId)
@@ -180,21 +191,35 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       equipment_id: equipmentSelect.value,
       start_date: container.querySelector('#field-start-date').value,
       end_date: endDateInput.disabled ? null : endDateInput.value || null,
-      work_scope: container.querySelector('#field-work-scope').value.trim(),
-      detailed_steps: container.querySelector('#field-detailed-steps').value,
+      // Title case (work_scope) and sentence case (the multi-line fields)
+      // are applied here, once, on submit — not live as the user types,
+      // so mid-typing text never jumps around under their cursor.
+      work_scope: toTitleCase(container.querySelector('#field-work-scope').value.trim()),
+      detailed_steps: capitalizeLines(container.querySelector('#field-detailed-steps').value),
       work_status: statusSelect.value,
       work_status_other: statusSelect.value === 'Other' ? otherInput.value.trim() : null,
-      comment: container.querySelector('#field-comment').value,
+      comment: capitalizeLines(container.querySelector('#field-comment').value),
+      pending: capitalizeLines(container.querySelector('#field-pending').value) || null,
     }
 
     const submitButton = form.querySelector('button[type="submit"]')
     submitButton.disabled = true
 
     try {
+      // Loops over every misspelled word across these fields, one dialog
+      // at a time (lib/spellcheckFlow.js) — after case normalization
+      // above, so it checks the text that's actually about to be saved.
+      const checkedFields = await runSpellcheck(fields, [
+        'work_scope',
+        'detailed_steps',
+        'comment',
+        'pending',
+      ])
+
       if (isEdit) {
-        await updateMaintenanceRecord(record.id, fields)
+        await updateMaintenanceRecord(record.id, checkedFields)
       } else {
-        await createMaintenanceRecord(fields)
+        await createMaintenanceRecord(checkedFields)
       }
       onSaved?.()
     } catch (err) {

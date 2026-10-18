@@ -44,27 +44,39 @@ const COLUMN_WIDTHS_DXA = COLUMN_WIDTHS.map((pct) => Math.round((pct / 100) * US
 // hanging indent, so a wrapped multi-line item's continuation would sit
 // flush left under the bullet instead of aligned under the text) but with
 // a small indent instead of Word's default list style's much larger one.
-// left/hanging equal means the bullet sits at the paragraph's natural left
-// edge and only wrapped continuation lines are pushed in — by this amount.
+// left/hanging equal (at level 0) means the bullet sits at the
+// paragraph's natural left edge and only wrapped continuation lines are
+// pushed in — by this amount.
+//
+// Multiple levels, one per indent step the Indent/Outdent toolbar
+// (lib/listFormatToolbar.js) allows — `hanging` stays constant across
+// levels (so the bullet-to-text gap always looks the same) while `left`
+// grows per level, and the bullet glyph alternates (•/◦/▪, repeating)
+// the way Word's own built-in list styles do, so a nested level is
+// visually distinct from its parent at a glance.
 const BULLET_NUMBERING_REFERENCE = 'handover-bullets'
 const BULLET_INDENT_DXA = 200 // ~0.14in — deliberately minimal
+const BULLET_LEVEL_STEP_DXA = 260
+const BULLET_GLYPHS = ['•', '◦', '▪']
+const BULLET_MAX_LEVEL = 4 // matches listFormatToolbar.js's MAX_DEPTH - 1
 const BULLET_NUMBERING_CONFIG = {
   config: [
     {
       reference: BULLET_NUMBERING_REFERENCE,
-      levels: [
-        {
-          level: 0,
-          format: LevelFormat.BULLET,
-          text: '•',
-          alignment: AlignmentType.LEFT,
-          style: {
-            paragraph: {
-              indent: { left: BULLET_INDENT_DXA, hanging: BULLET_INDENT_DXA },
+      levels: Array.from({ length: BULLET_MAX_LEVEL + 1 }, (_, level) => ({
+        level,
+        format: LevelFormat.BULLET,
+        text: BULLET_GLYPHS[level % BULLET_GLYPHS.length],
+        alignment: AlignmentType.LEFT,
+        style: {
+          paragraph: {
+            indent: {
+              left: BULLET_INDENT_DXA + level * BULLET_LEVEL_STEP_DXA,
+              hanging: BULLET_INDENT_DXA,
             },
           },
         },
-      ],
+      })),
     },
   ],
 }
@@ -108,13 +120,16 @@ function noActivityRow() {
 function bulletParagraphs(text) {
   return (text ?? '')
     .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+    .map((line) => {
+      const depth = line.match(/^\t*/)[0].length
+      return { level: Math.min(depth, BULLET_MAX_LEVEL), content: line.slice(depth).trim() }
+    })
+    .filter((item) => item.content !== '')
     .map(
-      (line) =>
+      ({ level, content }) =>
         new Paragraph({
-          numbering: { reference: BULLET_NUMBERING_REFERENCE, level: 0 },
-          children: [new TextRun({ text: line })],
+          numbering: { reference: BULLET_NUMBERING_REFERENCE, level },
+          children: [new TextRun({ text: content })],
         })
     )
 }
@@ -140,6 +155,7 @@ function maintenanceScopeParagraphs(record) {
     new Paragraph({ children: [new TextRun({ text: record.work_scope, bold: true })] }),
     ...labeledBulletSection('Detailed Work Done:', record.detailed_steps),
     ...labeledBulletSection('Comments:', record.comment),
+    ...labeledBulletSection('Pending:', record.pending),
   ]
 }
 

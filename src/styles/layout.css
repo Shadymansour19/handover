@@ -223,3 +223,29 @@
     height: 44px;
   }
 }
+
+/* Maintenance/Operations toggle (mainView.js) — a plain two-way segmented
+   control sitting between the FAB cluster and the records list, on both
+   mobile and desktop (unlike the FAB cluster, this has no reason to
+   change shape between them — it's always a short, static row). */
+.view-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.view-toggle__button {
+  border: none;
+  border-radius: 0;
+  background: var(--surface-alt);
+  padding: 0.5rem 1rem;
+}
+
+.view-toggle__button.active {
+  background: var(--accent);
+  color: var(--bg);
+}

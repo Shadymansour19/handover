@@ -58,8 +58,19 @@ export default defineConfig({
         // fetchExportData()) — there's no offline export use case for
         // precaching to serve. Left in, pdfmake + its bundled font set
         // alone would add ~1.7MB to every install's precache, whether or
-        // not Export is ever used.
-        globIgnores: ['**/docxExport-*.js', '**/pdfExport-*.js', '**/pdfmake-*.js', '**/vfs_fonts-*.js'],
+        // not Export is ever used. Same reasoning for the spellcheck
+        // dictionary (lib/spellcheck.js) — ~550KB, dynamically imported
+        // only on form submit, no benefit to precaching it for an offline
+        // launch that never gets that far without a live Supabase fetch
+        // anyway.
+        globIgnores: [
+          '**/docxExport-*.js',
+          '**/pdfExport-*.js',
+          '**/pdfmake-*.js',
+          '**/vfs_fonts-*.js',
+          '**/dictionary-en-*.js',
+          '**/spellcheck-*.js',
+        ],
       },
     }),
   ],

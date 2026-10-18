@@ -87,11 +87,43 @@ function noActivityRow() {
 // pdfmake's own `ul` renders a real bullet list (hanging indent included by
 // default) — no need for docxExport.js's custom minimal-indent numbering
 // hack, which existed only to work around Word's much larger default.
+// Nesting (lib/listFormatToolbar.js's Indent/Outdent, leading tabs per
+// line) maps onto pdfmake's own nested-list format: a sibling at the same
+// depth is a plain string in the array, a deeper line becomes a trailing
+// `{ ul: [...] }` entry right after its nearest shallower sibling — hence
+// building a depth tree first (same shape as lib/bullets.js's web
+// renderer) and converting that tree to pdfmake's array shape, rather
+// than trying to produce the array directly in one pass.
+function buildBulletTree(items) {
+  const root = []
+  const stack = [{ depth: -1, container: root }]
+  for (const item of items) {
+    while (stack.length > 1 && stack[stack.length - 1].depth >= item.depth) stack.pop()
+    const node = { content: item.content, children: [] }
+    stack[stack.length - 1].container.push(node)
+    stack.push({ depth: item.depth, container: node.children })
+  }
+  return root
+}
+
+function treeToPdfList(nodes) {
+  const items = []
+  for (const node of nodes) {
+    items.push(node.content)
+    if (node.children.length > 0) items.push({ ul: treeToPdfList(node.children) })
+  }
+  return items
+}
+
 function bulletLines(text) {
-  return (text ?? '')
+  const items = (text ?? '')
     .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+    .map((line) => {
+      const depth = line.match(/^\t*/)[0].length
+      return { depth, content: line.slice(depth).trim() }
+    })
+    .filter((item) => item.content !== '')
+  return treeToPdfList(buildBulletTree(items))
 }
 
 function labeledBulletSection(label, text) {
@@ -116,6 +148,7 @@ function maintenanceScopeCell(record) {
       { text: record.work_scope, bold: true },
       ...labeledBulletSection('Detailed Work Done:', record.detailed_steps),
       ...labeledBulletSection('Comments:', record.comment),
+      ...labeledBulletSection('Pending:', record.pending),
     ],
   }
 }

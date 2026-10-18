@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "dictionary-en": "^4.0.0",
     "docx": "^9.7.1",
+    "nspell": "^2.1.5",
     "pdfmake": "^0.2.20"
   },
   "devDependencies": {

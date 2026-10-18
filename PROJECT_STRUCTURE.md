@@ -59,7 +59,16 @@ handover/
     │   ├── staleness.js        # staleDays(): a non-terminal-status record past its own
     │   │                       # threshold without an update — see SPEC.md "stale-record flagging"
     │   ├── undoToast.js        # showUndoToast(): short-lived "Undo" toast after a soft-delete
-    │   ├── bullets.js          # \n-text -> bullet-list HTML for the View modal
+    │   ├── bullets.js          # \n-text -> (possibly nested) bullet-list HTML for the View modal —
+    │   │                       # a line's leading tabs (listFormatToolbar.js) set its nesting depth
+    │   ├── textCase.js         # toTitleCase() (work_scope) / capitalizeLines() (the other
+    │   │                       # multi-line fields) — applied once, on submit
+    │   ├── listFormatToolbar.js    # Indent/Outdent toolbar for a multi-line field's textarea —
+    │   │                           # attachListFormatToolbar(textarea); Tab/Shift+Tab do the same
+    │   ├── spellcheck.js       # findMisspellings()/suggestionsFor() — nspell + dictionary-en
+    │   │                       # (lazy-loaded; see SPEC.md "spellcheck on submit")
+    │   ├── spellcheckFlow.js   # runSpellcheck(): loops the per-word suggestion dialog over every
+    │   │                       # misspelling across a set of fields, called from the submit handlers
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and
     │   │                       # header menu's larger ones (plus/filter/export/pdf/dots/menu/...)
@@ -73,8 +82,9 @@ handover/
     │   │                       # SPEC.md "stale app after a deploy")
     │   ├── equipmentStatus.js  # pure: dropdown filtering + pre-submit validation for operation events
     │   ├── combinedTimeline.js # pure: merges one equipment's records+events into one sorted list —
-    │   │                       # built for Phase 4's main-table attempt (since reverted), kept for
-    │   │                       # Phase 5's export, which needs the identical merge logic
+    │   │                       # Phase 5's export's own grouping (chronological, both types
+    │   │                       # together); the main view's own Maintenance/Operations toggle
+    │   │                       # (operationEventsTable.js) shows the two separately instead
     │   ├── downloadBlob.js     # triggers a browser "Save As" for a Blob — split out of docxExport.js
     │   │                       # into its own zero-dependency file so it can be shared with
     │   │                       # pdfExport.js without statically importing (and thus bundling)
@@ -93,7 +103,9 @@ handover/
     │
     ├── data/                   # thin wrappers around supabase-js calls — no UI logic
     │   ├── maintenanceRecords.js  # fetch + create + update + soft-delete/restore/hard-delete;
-    │   │                          # fetchPriorWorkScopes() backs recordModal.js's autocomplete
+    │   │                          # fetchPriorWorkScopes() backs recordModal.js's autocomplete;
+    │   │                          # `pending` is the same kind of optional \n-text field as
+    │   │                          # detailed_steps/comment, just without a required counterpart
     │   ├── operationEvents.js     # fetch (range + per-equipment history) + create/update +
     │   │                          # soft-delete/restore/hard-delete; equipment_status fetch
     │   ├── profiles.js            # own profile fetch, username-or-email login resolution
@@ -108,17 +120,29 @@ handover/
         ├── loginView.js        # username/email + password form
         ├── mainView.js         # controller: DOM wiring, event delegation, data orchestration
         ├── recordsTable.js     # pure rendering: (systems, records, permissions, equipmentStatuses)
-        │                       # -> HTML string, maintenance records only (operation events are
-        │                       # History-only — see combinedTimeline.js's note above)
-        ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two forms
-        ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal (edit)
-        ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal (edit)
+        │                       # -> HTML string, maintenance records only — mainView.js's
+        │                       # Maintenance side of the Maintenance/Operations toggle
+        ├── operationEventsTable.js # same shape as recordsTable.js, operation events instead —
+        │                           # mainView.js's Operations side of that toggle (SPEC.md
+        │                           # "maintenance/operations toggle view"); reuses
+        │                           # historyModal.js's operationActionLabel()/View modal directly
+        ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two
+        │                       # forms; opens on whichever tab matches mainView.js's current view
+        ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal
+        │                       # (edit) — case normalization + spellcheck run on submit
+        │                       # (lib/textCase.js, lib/spellcheckFlow.js)
+        ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal
+        │                           # (edit) — same submit-time case/spellcheck treatment for comment
         ├── viewRecordModal.js  # read-only View modal, bullet rendering
         ├── historyModal.js     # all operation events for one unit; Edit/Delete per event; admin
-        │                       # "Show deleted" + Restore/Delete-forever, same as maintenance records
+        │                       # "Show deleted" + Restore/Delete-forever, same as maintenance
+        │                       # records. Exports operationActionLabel()/operationActionDescription()
+        │                       # and openViewOperationEventModal() for operationEventsTable.js/
+        │                       # mainView.js to reuse directly, rather than duplicating them
         ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
         ├── manageRecordAccessModal.js  # admin-only: grant/revoke one other user's access to a
-        │                               # specific record — shared by recordsTable.js/historyModal.js
+        │                               # specific record — shared by recordsTable.js/
+        │                               # operationEventsTable.js/historyModal.js
         ├── staleRecordsModal.js    # once-per-session popup listing stale records the current
         │                           # user can act on (lib/staleness.js) — "take action" = Edit
         ├── changePasswordModal.js  # any signed-in user: change their own password
@@ -173,11 +197,12 @@ handover/
   `supabase/migrations/`) for protection, which is why the allowlist
   enforcement there matters.
 - **Deploy target**: Vercel (see SPEC.md "Deploy").
-- **The two export libraries (`docx`, `pdfmake`) are excluded from the PWA's
-  precache** via `vite.config.js`'s `workbox.globIgnores` — both are large,
-  only ever loaded on demand when Export/Export PDF is clicked, and
-  exporting needs a live Supabase fetch regardless of what's cached, so
-  there's no offline export use case to precache for.
+- **The two export libraries (`docx`, `pdfmake`) and the spellcheck
+  dictionary (`dictionary-en`) are excluded from the PWA's precache** via
+  `vite.config.js`'s `workbox.globIgnores` — all large, only ever loaded on
+  demand (Export/Export PDF clicked, or a form submitted), and needing a
+  live Supabase fetch regardless of what's cached anyway, so there's no
+  offline use case to precache any of them for.
 - **Main view toolbar is a floating action button (FAB) cluster on
   mobile, a plain toolbar on desktop** — Add Record/Filter/Export are
   hidden by default behind a single bottom-right dots FAB on narrow
@@ -196,3 +221,9 @@ handover/
   generalization of the row-menu (⋮) dropdown mechanics already used for
   per-row/per-user actions — see SPEC.md "2026-08-30 — main view toolbar
   redesign".
+- **Maintenance/Operations toggle** (`mainView.js`'s `.view-toggle`) — a
+  plain two-way switch between `recordsTable.js`'s maintenance view and
+  `operationEventsTable.js`'s equivalent for operation events; both
+  datasets are fetched by every `reload()` regardless of which is on
+  screen, so switching is a pure re-render, no new fetch. See SPEC.md
+  "maintenance/operations toggle view".

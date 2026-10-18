@@ -6,7 +6,7 @@ import { renderOperationForm } from './operationEventModal.js'
 // (SPEC.md). Both tabs are always create-mode; editing an existing record
 // of either type goes through its own standalone modal instead
 // (openMaintenanceRecordModal / openOperationEventModal), not this one.
-export function openNewRecordModal({ systems, equipmentStatuses, onSaved }) {
+export function openNewRecordModal({ systems, equipmentStatuses, onSaved, initialTab = 'maintenance' }) {
   const { modalEl, close } = openModal(
     `
     <h2>New Record</h2>
@@ -56,5 +56,5 @@ export function openNewRecordModal({ systems, equipmentStatuses, onSaved }) {
     button.addEventListener('click', () => activateTab(button.dataset.tab))
   })
 
-  activateTab('maintenance')
+  activateTab(initialTab)
 }
