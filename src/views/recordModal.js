@@ -40,7 +40,7 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
 
   container.innerHTML = `
     <form id="record-form" class="record-form">
-      <div class="form-row form-row--stack-mobile">
+      <div class="form-row">
         <label>System
           <select id="field-system" required>
             <option value="" disabled ${initial.system_id ? '' : 'selected'}>Select a system…</option>
@@ -68,7 +68,7 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
         <span class="field-label-row">Detailed steps (one step per line)</span>
         <textarea id="field-detailed-steps" rows="4" spellcheck="true" autocorrect="on">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
       </label>
-      <div class="form-row form-row--stack-mobile">
+      <div class="form-row">
         <label>Work status
           <select id="field-work-status" required>${statusOptions}</select>
         </label>

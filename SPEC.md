@@ -171,6 +171,33 @@ as "Detailed steps"'s label text, and that the modal is 720px wide; then
 confirmed mobile (390px) stacks both pairs and puts the toolbar back below
 the label text — same markup, pure CSS doing the switching.
 
+**Follow-up (2026-10-18)** — all three changes above were desktop-only by
+design (System/Equipment and Work status/Other status fell back to
+stacked on mobile; the toolbar fell back to its own line above the
+textarea). Asked, immediately after, to drop that mobile exception and
+keep all three on every screen size instead. Removed the now-unneeded
+`.form-row--stack-mobile` modifier (System/Equipment and Work status/
+Other status just use plain `.form-row`, same as Start/End date already
+did) and `.field-label-row`'s mobile-vs-desktop media query (it's just
+always a row now). The dialog's own width stays responsive as before —
+`.modal`'s `width: 100%` already fills a narrow viewport regardless of its
+`max-width` cap, so these pairings simply get tighter on a small phone
+screen rather than needing their own breakpoint logic; `.form-row > label`
+already had `min-width: 0` from the original Start/End date pairing, which
+is what keeps a long equipment/system name eliding instead of overflowing
+at that width.
+
+Verified directly at 375px width (narrower than the two breakpoints
+checked above): System/Equipment, and Work status/Other status (again
+re-checked with "Other" selected), both still land on one row each, and
+the Indent/Outdent toolbar still sits on the same row as its field's
+label text. One minor, accepted cosmetic side effect at this width: "Other
+status (free text)" is long enough to wrap onto two lines, which nudges
+its input a little lower than "Work status"'s dropdown in the same row —
+the two fields are still correctly paired (confirmed via their parent
+`<label>`s sharing an identical bounding box), just not pixel-perfectly
+top-aligned to each other at the narrowest end of normal phone widths.
+
 ## Fix (2026-10-08) — row-menu hidden behind the desktop sticky toolbar
 
 Reported: opening a row's ⋮ menu on desktop could hide some or all of its
