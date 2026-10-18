@@ -40,15 +40,17 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
 
   container.innerHTML = `
     <form id="record-form" class="record-form">
-      <label>System
-        <select id="field-system" required>
-          <option value="" disabled ${initial.system_id ? '' : 'selected'}>Select a system…</option>
-          ${systemOptions}
-        </select>
-      </label>
-      <label>Equipment
-        <select id="field-equipment" required></select>
-      </label>
+      <div class="form-row form-row--stack-mobile">
+        <label>System
+          <select id="field-system" required>
+            <option value="" disabled ${initial.system_id ? '' : 'selected'}>Select a system…</option>
+            ${systemOptions}
+          </select>
+        </label>
+        <label>Equipment
+          <select id="field-equipment" required></select>
+        </label>
+      </div>
       <div class="form-row">
         <label>Start date
           <input type="date" id="field-start-date" value="${initial.start_date}" required />
@@ -62,20 +64,25 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
                spellcheck="true" autocorrect="on" list="field-work-scope-suggestions" autocomplete="off" />
         <datalist id="field-work-scope-suggestions"></datalist>
       </label>
-      <label>Detailed steps (one step per line)
+      <label>
+        <span class="field-label-row">Detailed steps (one step per line)</span>
         <textarea id="field-detailed-steps" rows="4" spellcheck="true" autocorrect="on">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
       </label>
-      <label>Work status
-        <select id="field-work-status" required>${statusOptions}</select>
-      </label>
-      <label id="field-work-status-other-wrap" hidden>Other status (free text)
-        <input type="text" id="field-work-status-other" value="${escapeHTML(initial.work_status_other ?? '')}"
-               spellcheck="true" autocorrect="on" />
-      </label>
-      <label>Comment (one point per line)
+      <div class="form-row form-row--stack-mobile">
+        <label>Work status
+          <select id="field-work-status" required>${statusOptions}</select>
+        </label>
+        <label id="field-work-status-other-wrap" hidden>Other status (free text)
+          <input type="text" id="field-work-status-other" value="${escapeHTML(initial.work_status_other ?? '')}"
+                 spellcheck="true" autocorrect="on" />
+        </label>
+      </div>
+      <label>
+        <span class="field-label-row">Comments (one point per line)</span>
         <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
       </label>
-      <label>Pending (optional — one point per line)
+      <label>
+        <span class="field-label-row">Pending (one point per line)</span>
         <textarea id="field-pending" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.pending ?? '')}</textarea>
       </label>
       <p id="record-form-error" class="status status--error" hidden></p>
@@ -234,10 +241,18 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
 // on an existing record). The "+ New Record" flow instead embeds
 // renderMaintenanceForm directly as one tab of newRecordModal.js.
 export function openMaintenanceRecordModal({ mode, record, systems, onSaved }) {
-  const { modalEl, close } = openModal(`
+  const { modalEl, close } = openModal(
+    `
     <h2>${mode === 'edit' ? 'Edit' : 'New'} Maintenance Record</h2>
     <div id="maintenance-form-container"></div>
-  `)
+  `,
+    // Wide, not the default 520px — this form has paired fields on
+    // desktop now (System/Equipment, Work status/Other status), which
+    // need the extra room; see SPEC.md "maintenance record dialog:
+    // desktop layout". Same width newRecordModal.js's own Maintenance tab
+    // uses, so Edit and "+ New Record" look consistent.
+    { wide: true }
+  )
 
   renderMaintenanceForm(modalEl.querySelector('#maintenance-form-container'), {
     mode,

@@ -16,7 +16,10 @@ export function openNewRecordModal({ systems, equipmentStatuses, onSaved, initia
     </div>
     <div id="tab-content"></div>
   `,
-    { medium: true }
+    // Wide, not medium — matches openMaintenanceRecordModal's own width
+    // (recordModal.js), needed for that tab's desktop-paired fields; see
+    // SPEC.md "maintenance record dialog: desktop layout".
+    { wide: true }
   )
 
   const tabButtons = modalEl.querySelectorAll('.tab-button')

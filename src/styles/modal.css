@@ -115,6 +115,59 @@
   min-width: 0;
 }
 
+/* System/Equipment and Work status/Other status (recordModal.js) use this
+   instead of the bare .form-row above — on a narrow phone screen, two
+   <select>s (or a select + free-text input) side by side get cramped in a
+   way two short date inputs don't, so these stack like any other field
+   there and only become a .form-row on desktop (SPEC.md "maintenance
+   record dialog: desktop layout"). */
+.form-row--stack-mobile {
+  flex-direction: column;
+}
+
+@media (min-width: 601px) {
+  .form-row--stack-mobile {
+    flex-direction: row;
+  }
+}
+
+/* Wraps a multi-line field's label text (recordModal.js) so
+   lib/listFormatToolbar.js's Indent/Outdent buttons can be appended into
+   this same row instead of sitting on a line of their own — stacked on
+   mobile (matching every other field's label-above-input layout), side by
+   side with the toolbar pushed to the right edge on desktop, where the
+   extra horizontal room this dialog now has makes that worth doing
+   (SPEC.md "maintenance record dialog: desktop layout"). Flex, not block:
+   a flex-column parent (.record-form label above) stretches a block-level
+   child to its own full width for free, which is what lets
+   justify-content below actually reach the field's right edge. */
+.field-label-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (min-width: 601px) {
+  .field-label-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* The toolbar's own spacing below (set on .list-format-toolbar itself,
+   further down) would double up with .field-label-row's margin-bottom
+   above when the toolbar is nested inside one of these rows rather than
+   sitting as its own line — only relevant there, so scoped to that case
+   rather than removed from .list-format-toolbar entirely (which still
+   needs its own margin for operationEventModal.js's comment field, the
+   one caller that doesn't use this wrapper). */
+.field-label-row .list-format-toolbar {
+  margin-bottom: 0;
+}
+
 .record-form input,
 .record-form select,
 .record-form textarea {

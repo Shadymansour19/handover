@@ -51,10 +51,16 @@ function outdentLine(line) {
   return line.startsWith('\t') ? line.slice(1) : line
 }
 
-// Inserts the toolbar as the textarea's previous sibling — callers just
-// need the textarea already in the DOM (inside its <label>, per the
-// existing record-form markup) and matching CSS for
-// `.list-format-toolbar` (modal.css) to sit flush above it.
+// If the textarea's previous sibling is a `.field-label-row` (the field's
+// label text wrapped in a span — recordModal.js's desktop-width redesign,
+// SPEC.md "maintenance record dialog: desktop layout"), the toolbar is
+// appended into that row instead of inserted as its own line above the
+// textarea — CSS (modal.css) then lays the label text and toolbar out
+// side by side on desktop, stacked on mobile, from the same markup.
+// Falls back to inserting directly before the textarea for any field that
+// doesn't use that wrapper (operationEventModal.js's comment field still
+// doesn't), so this works either way without every caller needing to
+// change its markup.
 export function attachListFormatToolbar(textarea) {
   const toolbar = document.createElement('div')
   toolbar.className = 'list-format-toolbar'
@@ -62,7 +68,12 @@ export function attachListFormatToolbar(textarea) {
     <button type="button" data-action="outdent" title="Decrease indent" aria-label="Decrease indent">${ICONS.outdent}</button>
     <button type="button" data-action="indent" title="Increase indent" aria-label="Increase indent">${ICONS.indent}</button>
   `
-  textarea.before(toolbar)
+  const labelRow = textarea.previousElementSibling
+  if (labelRow?.classList.contains('field-label-row')) {
+    labelRow.append(toolbar)
+  } else {
+    textarea.before(toolbar)
+  }
 
   toolbar.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]')

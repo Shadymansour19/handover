@@ -128,6 +128,49 @@ content, routes row-menu actions (view/edit/delete, confirmed via the
 real undo-toast appearing) to the right data set, and opens "+ Add" on the
 matching tab.
 
+## Decision (2026-10-18) — maintenance record dialog: desktop layout
+
+Asked to shrink the Maintenance Record dialog's height on desktop enough
+that it doesn't need scrolling, given the Pending field above just added a
+fourth stacked textarea on top of an already-tall form.
+
+- **Wider dialog** — `openMaintenanceRecordModal` (standalone Edit) and
+  `openNewRecordModal` (its Maintenance tab) both moved from their
+  previous widths (520px default, 600px `medium`) to `{ wide: true }`
+  (720px) — the same tier `historyModal.js`'s table already uses. More
+  horizontal room is what makes the two pairings below worth doing instead
+  of looking cramped.
+- **System + Equipment, and Work status + Other status, paired on one row
+  each** — a new `.form-row--stack-mobile` modifier on the existing
+  `.form-row` (already used for Start/End date): row on desktop, stacked
+  on mobile. A plain `.form-row` (Start/End date's own class, left
+  unchanged) is always a row regardless of width — fine for two narrow
+  date inputs, but two `<select>`s (or a select + free-text input) side by
+  side read as cramped on a narrow phone screen the way two dates don't,
+  so these two pairs specifically get the mobile-stacking behavior Start/
+  End date doesn't need.
+- **Indent/Outdent toolbar moved onto the same line as its field's label**
+  (`detailed_steps`/`comment`/`pending`) — the label text is now wrapped
+  in a `<span class="field-label-row">`, and `lib/listFormatToolbar.js`
+  appends the toolbar into that span (instead of inserting it as a
+  separate line above the textarea) whenever it finds one. CSS alone
+  decides the rest: stacked (text, then toolbar) on mobile, same row with
+  the toolbar pushed to the far right via `justify-content: space-between`
+  on desktop. Falls back to the original "insert before the textarea"
+  behavior for any field without that wrapper — operationEventModal.js's
+  own comment field wasn't changed (out of scope: this request was about
+  the maintenance record dialog specifically), so it still gets the
+  toolbar-on-its-own-line treatment, unaffected.
+
+Verified directly in a real browser, both breakpoints: confirmed desktop
+(1280px) actually pairs System/Equipment and Work status/Other status on
+one row each (including re-checking after switching status to "Other",
+since that's the one case where the second field in the pair goes from
+hidden to visible), that the Indent/Outdent toolbar sits on the same row
+as "Detailed steps"'s label text, and that the modal is 720px wide; then
+confirmed mobile (390px) stacks both pairs and puts the toolbar back below
+the label text — same markup, pure CSS doing the switching.
+
 ## Fix (2026-10-08) — row-menu hidden behind the desktop sticky toolbar
 
 Reported: opening a row's ⋮ menu on desktop could hide some or all of its
