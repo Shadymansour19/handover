@@ -128,6 +128,20 @@ content, routes row-menu actions (view/edit/delete, confirmed via the
 real undo-toast appearing) to the right data set, and opens "+ Add" on the
 matching tab.
 
+**Follow-up (2026-10-18)** — operation view: match History's row layout.
+The Operations table was missing the "By" (creator) column History's own
+table has — its row-menu options already matched exactly (View/Edit/
+Delete/Manage Access, Restore/Delete forever when deleted), but the
+visible columns didn't (Timestamp/Action/Comment/actions vs History's
+Timestamp/Action/**By**/Comment/actions). Added it:
+`renderOperationSystemsHTML()` now takes `profileNames` (mainView.js
+already had it in `state`, from the same `fetchProfileNames()` call the
+maintenance view uses) and threads it down to each row, same
+`profileNames.get(event.created_by) ?? '—'` lookup History's own table
+uses. Verified in a real browser: the column headers now read Timestamp/
+Action/By/Comment (plus the actions column), and a row for an event
+created by a stubbed "Bob" correctly shows "Bob" in that column.
+
 ## Decision (2026-10-18) — maintenance record dialog: desktop layout
 
 Asked to shrink the Maintenance Record dialog's height on desktop enough

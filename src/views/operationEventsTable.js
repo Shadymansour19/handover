@@ -15,7 +15,7 @@ import { formatDateTimeDMY } from '../lib/dateFormat.js'
 // formatting needs — see SPEC.md "Swap direction in History/exports").
 import { operationActionLabel } from './historyModal.js'
 
-export function renderOperationSystemsHTML(systems, operationEvents, permissions, equipmentStatuses) {
+export function renderOperationSystemsHTML(systems, operationEvents, permissions, equipmentStatuses, profileNames) {
   const allEquipment = systems.flatMap((s) => s.equipment)
   const nameOf = (id) => allEquipment.find((e) => e.id === id)?.name ?? '—'
 
@@ -24,7 +24,7 @@ export function renderOperationSystemsHTML(systems, operationEvents, permissions
   // with no tracked equipment has nothing to show here at all.
   const sections = systems
     .filter((system) => system.operation_tracked)
-    .map((system) => renderSystemSection(system, operationEvents, permissions, equipmentStatuses, nameOf))
+    .map((system) => renderSystemSection(system, operationEvents, permissions, equipmentStatuses, nameOf, profileNames))
     .filter(Boolean)
 
   if (sections.length === 0) {
@@ -33,12 +33,12 @@ export function renderOperationSystemsHTML(systems, operationEvents, permissions
   return sections.join('\n')
 }
 
-function renderSystemSection(system, operationEvents, permissions, equipmentStatuses, nameOf) {
+function renderSystemSection(system, operationEvents, permissions, equipmentStatuses, nameOf, profileNames) {
   const equipmentList = system.equipment.filter((eq) => !eq.is_generic)
   if (equipmentList.length === 0) return null
 
   const equipmentSections = equipmentList
-    .map((eq) => renderEquipmentSection(eq, operationEvents, permissions, equipmentStatuses, nameOf))
+    .map((eq) => renderEquipmentSection(eq, operationEvents, permissions, equipmentStatuses, nameOf, profileNames))
     .join('\n')
 
   return `
@@ -49,17 +49,21 @@ function renderSystemSection(system, operationEvents, permissions, equipmentStat
   `
 }
 
-function renderEquipmentSection(equipment, operationEvents, permissions, equipmentStatuses, nameOf) {
+function renderEquipmentSection(equipment, operationEvents, permissions, equipmentStatuses, nameOf, profileNames) {
   const events = operationEvents
     .filter((e) => e.equipment_id === equipment.id || e.secondary_equipment_id === equipment.id)
     .sort((a, b) => (a.event_timestamp < b.event_timestamp ? 1 : -1))
 
   const rows = events.length
-    ? events.map((e) => renderEventRow(e, equipment.id, permissions, nameOf)).join('\n')
-    : '<tr><td colspan="4" class="no-records">No events in range</td></tr>'
+    ? events.map((e) => renderEventRow(e, equipment.id, permissions, nameOf, profileNames)).join('\n')
+    : '<tr><td colspan="5" class="no-records">No events in range</td></tr>'
 
   const runningTag = equipmentStatuses.get(equipment.id) === 'Running' ? '<span class="running">(Running)</span>' : ''
 
+  // Same column set as historyModal.js's own table (Timestamp/Action/By/
+  // Comment/actions) — SPEC.md "operation view: match History's row
+  // layout" — so a record looks identical whether reached from here or
+  // from History.
   return `
     <div class="equipment-block">
       <h3 class="equipment-header">
@@ -71,11 +75,12 @@ function renderEquipmentSection(equipment, operationEvents, permissions, equipme
         <colgroup>
           <col class="col-history-timestamp" />
           <col class="col-history-action" />
+          <col class="col-history-by" />
           <col class="col-history-comment" />
           <col class="col-history-actions" />
         </colgroup>
         <thead>
-          <tr><th>Timestamp</th><th>Action</th><th>Comment</th><th></th></tr>
+          <tr><th>Timestamp</th><th>Action</th><th>By</th><th>Comment</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -83,7 +88,7 @@ function renderEquipmentSection(equipment, operationEvents, permissions, equipme
   `
 }
 
-function renderEventRow(event, equipmentId, permissions, nameOf) {
+function renderEventRow(event, equipmentId, permissions, nameOf, profileNames) {
   const actionLabel = escapeHTML(operationActionLabel(event, equipmentId, nameOf))
 
   const isDeleted = Boolean(event.deleted_at)
@@ -130,10 +135,13 @@ function renderEventRow(event, equipmentId, permissions, nameOf) {
     })
     .join('')
 
+  const createdByName = profileNames.get(event.created_by) ?? '—'
+
   return `
     <tr class="${isDeleted ? 'row-deleted' : ''}">
       <td>${escapeHTML(formatDateTimeDMY(event.event_timestamp))}</td>
       <td>${actionLabel}${isDeleted ? ' <span class="deleted-tag">(Deleted)</span>' : ''}</td>
+      <td>${escapeHTML(createdByName)}</td>
       <td>${escapeHTML(event.comment ?? '')}</td>
       <td class="actions">
         <div class="row-menu">

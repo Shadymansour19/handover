@@ -678,7 +678,8 @@ export async function renderMainView(container, { session, onSignOut }) {
         state.systems,
         state.operationEvents,
         { userId: session.user.id, isAdmin, grantedEventIds: state.grantedEventIds },
-        state.equipmentStatuses
+        state.equipmentStatuses,
+        state.profileNames
       )
     } else {
       recordsContainer.innerHTML = renderSystemsHTML(
