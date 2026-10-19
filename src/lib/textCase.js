@@ -16,10 +16,17 @@ function capitalizeWord(word) {
 }
 
 // Record title (work_scope) — every word capitalized except the small
-// words above, which stay lowercase UNLESS they're the first or last word
-// (e.g. "Filter House Cleaning Using Chemicals", but "Of Pumps And Valves"
-// still capitalizes the leading "Of"). Splits on whitespace runs, keeping
-// the original whitespace, so multiple spaces/tabs survive unchanged.
+// words above, which stay exactly as typed UNLESS they're the first or
+// last word (e.g. "Filter House Cleaning Using Chemicals", but "Of Pumps
+// And Valves" still capitalizes the leading "Of"). Splits on whitespace
+// runs, keeping the original whitespace, so multiple spaces/tabs survive
+// unchanged.
+//
+// Never lowercases a character the user actually typed as a capital —
+// only ever ADDS a capital at a word's start when one isn't already
+// there. A naive implementation normalizes the whole word to lowercase
+// first and re-capitalizes just the first letter, which silently destroys
+// a deliberate abbreviation ("GT-8040" -> "Gt-8040", "ASAP" -> "Asap").
 export function toTitleCase(text) {
   const segments = (text ?? '').split(/(\s+)/)
   const wordIndices = segments.reduce((acc, seg, i) => {
@@ -32,10 +39,10 @@ export function toTitleCase(text) {
   return segments
     .map((segment, i) => {
       if (segment.trim() === '') return segment
-      const lower = segment.toLowerCase()
       const isEdge = i === firstIdx || i === lastIdx
-      if (SMALL_WORDS.has(lower) && !isEdge) return lower
-      return capitalizeWord(lower)
+      const isSmall = SMALL_WORDS.has(segment.toLowerCase())
+      if (isSmall && !isEdge) return segment
+      return capitalizeWord(segment)
     })
     .join('')
 }
@@ -43,7 +50,9 @@ export function toTitleCase(text) {
 // Multi-line fields (detailed_steps, comment, pending) — capitalizes the
 // first letter of each non-empty line (each line is its own point/bullet,
 // see lib/bullets.js), preserving any leading indentation (tabs) added by
-// the formatting toolbar.
+// the formatting toolbar. Same rule as toTitleCase() above: only ever ADDS
+// a capital at the line's start, never touches (let alone lowercases) any
+// other character — an abbreviation elsewhere in the line is untouched.
 export function capitalizeLines(text) {
   return (text ?? '')
     .split('\n')

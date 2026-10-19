@@ -1,9 +1,14 @@
 // Remembers the main view's filter (date range, search, "show deleted")
 // and which of Maintenance/Operations is showing, across a page refresh —
-// see SPEC.md "filter persists across refresh". Plain localStorage, not
-// per-user: this is "what this browser was last looking at," the same
-// category of thing as a scroll position, not account state (that's
-// Supabase Auth's own session storage, untouched here).
+// but NOT across opening a brand new tab, which should start on the
+// normal defaults instead (SPEC.md "filter persists across refresh,
+// defaults in a new tab"). sessionStorage, deliberately not localStorage,
+// is what gives this for free: it survives a same-tab reload but starts
+// empty in a freshly opened tab (even to the same URL) — exactly the
+// "refresh keeps it, new tab doesn't" split asked for, with no extra
+// bookkeeping needed. Not per-user either way: this is "what this tab was
+// last looking at," the same category of thing as scroll position, not
+// account state (that's Supabase Auth's own storage, untouched here).
 const STORAGE_KEY = 'handover-filter'
 
 function isValidDateString(value) {
@@ -18,7 +23,7 @@ function isValidDateString(value) {
 export function loadSavedFilter() {
   let parsed
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     parsed = JSON.parse(raw)
   } catch {
@@ -41,7 +46,7 @@ export function loadSavedFilter() {
 
 export function saveFilter({ from, to, search, includeDeleted, view }) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ from, to, search, includeDeleted, view }))
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ from, to, search, includeDeleted, view }))
   } catch {
     // Private browsing / storage disabled / quota — the filter just won't
     // survive a refresh this time, which is exactly what happens today

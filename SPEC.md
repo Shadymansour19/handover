@@ -59,6 +59,18 @@ button, and the Filter dialog's own fields when reopened. Separately
 confirmed a browser with nothing saved still gets the normal defaults
 untouched.
 
+**Follow-up (2026-10-19)** — asked for a refinement: a refresh should keep
+the filter (as above), but a brand new tab should start on the normal
+defaults, not silently inherit whatever filter another tab last left
+behind. Switched the one line that mattered — `localStorage` to
+`sessionStorage` in `lib/filterPersistence.js` — rather than adding new
+logic to distinguish the two cases: `sessionStorage` already survives a
+same-tab reload but starts empty in a freshly opened tab (even to the
+same URL), which is exactly the "refresh keeps it, new tab doesn't" split
+asked for, for free. Verified directly: tab A's custom filter survived a
+real `page.reload()`, while a second tab opened fresh in the same browser
+context came up on the normal defaults.
+
 ## Decision (2026-10-18) — Pending field, simple formatting, case rules, spellcheck, operations toggle
 
 Six independent features landed together.
@@ -176,6 +188,20 @@ maintenance view uses) and threads it down to each row, same
 uses. Verified in a real browser: the column headers now read Timestamp/
 Action/By/Comment (plus the actions column), and a row for an event
 created by a stubbed "Bob" correctly shows "Bob" in that column.
+
+**Follow-up (2026-10-19)** — `toTitleCase()` had a real bug: it lowercased
+the entire word first, then re-capitalized just the first letter, which
+silently destroyed any deliberate capitalization elsewhere in the word —
+"GT-8040" became "Gt-8040," "ASAP" became "Asap." Asked explicitly never
+to force a character the user actually typed as a capital back down to
+lowercase, since abbreviations are common in this kind of text.
+`capitalizeLines()` already only ever touched a line's first character
+(never lowering anything), so it didn't need a change; `toTitleCase()` now
+does the same — capitalizes a word's first letter if it isn't already,
+leaves every other character exactly as typed. Verified: `"GT-8040
+inspection"` now stays `"GT-8040 Inspection"`, and `"check ASAP for
+GT-8040"` stays `"Check ASAP for GT-8040"`, while plain lowercase input
+still title-cases normally.
 
 ## Decision (2026-10-18) — maintenance record dialog: desktop layout
 
