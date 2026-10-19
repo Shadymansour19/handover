@@ -92,8 +92,7 @@ handover/
     │   │                       # into its own zero-dependency file so it can be shared with
     │   │                       # pdfExport.js without statically importing (and thus bundling)
     │   │                       # either export library into the other's lazy chunk
-    │   ├── realtime.js         # subscribeToChanges(): live-sync postgres_changes subscription,
-    │   │                       # generic across tables/callers (mainView.js, historyModal.js) —
+    │   ├── realtime.js         # subscribeToChanges(): live-sync postgres_changes subscription —
     │   │                       # see SPEC.md "live sync between users"
     │   ├── docxExport.js       # docx generation — dynamically import()'d from mainView.js's
     │   │                       # Export handler, not a top-level import (keeps the ~350KB
@@ -127,8 +126,16 @@ handover/
         │                       # Maintenance side of the Maintenance/Operations toggle
         ├── operationEventsTable.js # same shape as recordsTable.js, operation events instead —
         │                           # mainView.js's Operations side of that toggle (SPEC.md
-        │                           # "maintenance/operations toggle view"); reuses
-        │                           # historyModal.js's operationActionLabel()/View modal directly
+        │                           # "maintenance/operations toggle view"); Edit/Delete per event,
+        │                           # admin "Show deleted" (shared with the main Filter dialog) +
+        │                           # Restore/Delete-forever, same as maintenance records. Scoped to
+        │                           # the current date filter — unlike the old History modal this
+        │                           # replaced (SPEC.md "remove the History button"), not all-time
+        ├── operationEventDisplay.js  # operationActionLabel()/operationActionDescription() (the
+        │                             # Swap-direction wording) + openViewOperationEventModal() —
+        │                             # shared by operationEventsTable.js and mainView.js's own
+        │                             # click handler, split out once the History modal that
+        │                             # originally held them was removed
         ├── newRecordModal.js   # "+ New Record": Maintenance/Operation tab toggle over the two
         │                       # forms; opens on whichever tab matches mainView.js's current view
         ├── recordModal.js      # renderMaintenanceForm (embeddable) + openMaintenanceRecordModal
@@ -137,15 +144,10 @@ handover/
         ├── operationEventModal.js  # renderOperationForm (embeddable) + openOperationEventModal
         │                           # (edit) — same submit-time case/spellcheck treatment for comment
         ├── viewRecordModal.js  # read-only View modal, bullet rendering
-        ├── historyModal.js     # all operation events for one unit; Edit/Delete per event; admin
-        │                       # "Show deleted" + Restore/Delete-forever, same as maintenance
-        │                       # records. Exports operationActionLabel()/operationActionDescription()
-        │                       # and openViewOperationEventModal() for operationEventsTable.js/
-        │                       # mainView.js to reuse directly, rather than duplicating them
         ├── manageUsersModal.js # admin-only: list/create/edit users, set anyone's password
         ├── manageRecordAccessModal.js  # admin-only: grant/revoke one other user's access to a
         │                               # specific record — shared by recordsTable.js/
-        │                               # operationEventsTable.js/historyModal.js
+        │                               # operationEventsTable.js
         ├── staleRecordsModal.js    # once-per-session popup listing stale records the current
         │                           # user can act on (lib/staleness.js) — "take action" = Edit
         ├── changePasswordModal.js  # any signed-in user: change their own password
@@ -166,11 +168,10 @@ handover/
 - **Modals aren't a framework-style component system** — `lib/modal.js` just
   factors out the overlay/close/escape-key plumbing so every modal file
   doesn't repeat it; each modal still builds its own innerHTML string and
-  wires its own listeners directly. `manageUsersModal.js` and
-  `historyModal.js` both also use `onClose()` (returned by `openModal`) to
-  clean up their own document-level "outside click" listener, since that
-  listener would otherwise leak (re-added, never removed) every time the
-  modal reopens.
+  wires its own listeners directly. `manageUsersModal.js` also uses
+  `onClose()` (returned by `openModal`) to clean up its own document-level
+  "outside click" listener, since that listener would otherwise leak
+  (re-added, never removed) every time the modal reopens.
 - **CSS is split by concern, not by component** — there's no CSS-in-JS or
   scoping, so `styles/*.css` files are just named groupings (login, layout,
   records table, modals) plumbed together via `@import` from `main.css`.

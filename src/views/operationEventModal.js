@@ -229,7 +229,8 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
   })
 }
 
-// Standalone modal wrapper — used by the History modal's Edit action.
+// Standalone modal wrapper — used by the Operations view's own row-menu
+// Edit action (mainView.js).
 export function openOperationEventModal({ mode, record, systems, equipmentStatuses, onSaved }) {
   const { modalEl, close } = openModal(`
     <h2>${mode === 'edit' ? 'Edit' : 'New'} Operation Event</h2>

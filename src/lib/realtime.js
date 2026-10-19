@@ -17,8 +17,8 @@ import { supabase } from '../supabaseClient.js'
 //
 // Returns an unsubscribe function — callers MUST call it when the
 // subscribing view goes away (mainView.js's cleanup handed back to
-// main.js, historyModal.js's onClose()), or the channel keeps listening
-// and calling a callback bound to an already-discarded view forever.
+// main.js), or the channel keeps listening and calling a callback bound
+// to an already-discarded view forever.
 export function subscribeToChanges(tables, onChange, { debounceMs = 400 } = {}) {
   let timeout = null
   function debouncedOnChange() {

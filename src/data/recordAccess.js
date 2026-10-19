@@ -31,8 +31,9 @@ export async function fetchRecordAccess(recordType, recordId) {
 }
 
 // Every record id (of one type) the CURRENT user has been granted access
-// to — used by mainView.js/historyModal.js to extend a regular user's
-// canEdit check beyond their own records. RLS restricts a non-admin caller
+// to — used by mainView.js to extend a regular user's canEdit check
+// beyond their own records, for both maintenance records and operation
+// events. RLS restricts a non-admin caller
 // to their own grant rows automatically, so this needs no explicit
 // user_id filter (and isn't called at all for an admin session, which
 // doesn't need it — is_admin() already grants everything).

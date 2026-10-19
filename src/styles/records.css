@@ -31,11 +31,6 @@
   font-size: 0.85rem;
 }
 
-.history-button {
-  padding: 0.15rem 0.6rem;
-  font-size: 0.8rem;
-}
-
 .records-table {
   width: 100%;
   table-layout: fixed;
@@ -113,8 +108,9 @@
   }
 }
 
-/* History modal's table — different columns, same table-layout: fixed
-   scheme, so it needs its own set rather than reusing the ones above. */
+/* Operations table (operationEventsTable.js) — different columns, same
+   table-layout: fixed scheme, so it needs its own set rather than reusing
+   the ones above. */
 .col-history-timestamp {
   width: 20%;
 }
@@ -138,12 +134,12 @@
   width: 6%;
 }
 
-/* Mobile: drop Timestamp and Comment (nth-child 1 and 4) from the History
-   dialog entirely — Action/By identify an event at a glance, and the rest
-   (including the full Comment text) is one tap away via the new "View"
-   action (openViewOperationEventModal, historyModal.js). Actions is
-   bumped to 12% for the same overflow reason as .equipment-records-table/
-   .users-table above. */
+/* Mobile: drop Timestamp and Comment (nth-child 1 and 4) from the
+   Operations table entirely — Action/By identify an event at a glance,
+   and the rest (including the full Comment text) is one tap away via the
+   "View" action (openViewOperationEventModal, operationEventDisplay.js).
+   Actions is bumped to 12% for the same overflow reason as
+   .equipment-records-table/.users-table above. */
 @media (max-width: 600px) {
   .history-table col.col-history-timestamp,
   .history-table th:nth-child(1),

@@ -27,8 +27,8 @@
 }
 
 /* A bit wider than the default (520px) without going all the way to
-   --wide (720px, sized for table-heavy content like historyModal.js) —
-   used by newRecordModal.js's form, which is just stacked labels, not a
+   --wide (720px, sized for table-heavy content like manageUsersModal.js)
+   — used by newRecordModal.js's form, which is just stacked labels, not a
    table, so the full --wide tier would look sparse. */
 .modal--medium {
   max-width: 600px;

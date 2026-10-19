@@ -34,9 +34,9 @@
 
 /* undoToast.js — bottom-center (not bottom-right, where the FAB cluster
    lives) — above the FAB cluster (z-index 40) but below the update banner
-   (200, rarer/more important); above modals (100) too, since a delete can
-   happen from inside one (historyModal.js) and the toast should still be
-   reachable without closing it first. */
+   (200, rarer/more important); above modals (100) too, so the toast stays
+   reachable even if a delete happens to leave one open behind it, without
+   needing to close it first. */
 .undo-toast {
   position: fixed;
   bottom: 1.5rem;

@@ -4,11 +4,11 @@
 // container. Split out because mainView.js was doing both jobs at once and
 // had grown past the point that was easy to scan.
 //
-// Maintenance records only — operation events are viewed via the History
-// modal exclusively (a deliberate reversal of an earlier attempt to also
-// show them here; see PLAN.md Phase 4). lib/combinedTimeline.js, built for
-// that attempt, stays — Phase 5's export needs the same merge logic, just
-// rendered to a different target (docx, not HTML).
+// Maintenance records only — operation events get their own equivalent
+// table, operationEventsTable.js, shown instead of this one when
+// mainView.js's Maintenance/Operations toggle is set to Operations.
+// lib/combinedTimeline.js merges both into one chronological list for a
+// different target (docx/pdf export), not this one.
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { formatDateDMY } from '../lib/dateFormat.js'
@@ -72,12 +72,12 @@ function renderEquipmentSection(equipment, systemRecords, permissions, isTracked
     ? records.map((r) => renderRecordRow(r, permissions)).join('\n')
     : '<tr><td colspan="4" class="no-records">No records in range</td></tr>'
 
-  const trackingHTML = isTracked
-    ? `
-        ${equipmentStatuses.get(equipment.id) === 'Running' ? '<span class="running">(Running)</span>' : ''}
-        <button type="button" class="history-button" data-action="history" data-equipment-id="${equipment.id}">History</button>
-      `
-    : ''
+  // Just the Running tag now — the History button that used to sit here
+  // too was removed once the Operations view (operationEventsTable.js)
+  // became the only, sufficient place to see this equipment's operation
+  // events (SPEC.md "remove the History button").
+  const trackingHTML =
+    isTracked && equipmentStatuses.get(equipment.id) === 'Running' ? '<span class="running">(Running)</span>' : ''
 
   return `
     <div class="equipment-block">

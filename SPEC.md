@@ -24,6 +24,40 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-19) — remove the History button
+
+Asked, conditionally: now that the Operations view shows the same
+row-level data and the same row-menu options (View/Edit/Delete/Manage
+Access) as the per-equipment History modal, is it sufficient to replace
+it? Flagged one real behavioral difference first — History showed
+ALL-TIME events for one equipment, filter-independent, while Operations
+view is scoped to the main Filter dialog's current date range — then
+removed it on confirmation that this tradeoff is acceptable. Seeing an
+equipment's full history going forward means switching to Operations view
+and widening the date filter to cover all time, rather than a dedicated
+button.
+
+Removed: the "History" button next to a tracked equipment's name, in both
+`recordsTable.js` (maintenance view) and `operationEventsTable.js`
+(Operations view); `historyModal.js` itself (`openHistoryModal()`, its own
+realtime subscription, and its own "Show deleted" toggle — Operations view
+already shares the main Filter dialog's own one); the `.history-button`
+CSS (now unused); and the `data-action === 'history'` branch in
+`mainView.js`'s click delegation.
+
+`historyModal.js` had three exports genuinely reused elsewhere
+(`operationActionLabel()`, `operationActionDescription()`,
+`openViewOperationEventModal()`) — moved as-is into a new
+`operationEventDisplay.js` rather than deleted, since
+`operationEventsTable.js` and `mainView.js` both still need them and
+neither should duplicate what used to live in the now-gone modal.
+
+Verified directly: both views' equipment headers show the Running tag but
+no History button; a build succeeds (no dangling imports of the deleted
+file); and the Operations view's row menu still fully works end-to-end
+(View/Edit/Delete/Manage Access) through the relocated
+`operationEventDisplay.js` functions.
+
 ## Decision (2026-10-18) — filter persists across refresh
 
 Asked whether the current filter survives a page refresh — it didn't:

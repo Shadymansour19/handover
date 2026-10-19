@@ -112,8 +112,10 @@ export async function openManageUsersModal({ currentUserId }) {
     })
   }
 
-  // Same pattern as historyModal.js — see that file for why this needs the
-  // onClose() cleanup hook rather than just adding a bare listener.
+  // Registered via onClose() (not left as a bare listener) because this
+  // modal can be opened and closed repeatedly for the life of the
+  // session — without that cleanup, every reopen would add another one of
+  // these listening on `document` forever.
   function handleOutsideClick(event) {
     if (!content.contains(event.target)) closeAllMenus()
   }

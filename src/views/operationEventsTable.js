@@ -2,18 +2,17 @@
 // as recordsTable.js, which this mirrors. Added for the main view's
 // Maintenance/Operations toggle (SPEC.md "maintenance/operations toggle
 // view") — previously operation events were only ever visible through the
-// per-equipment History modal; this is the same event data, just grouped
-// by System/Equipment the same way the maintenance table is, instead of
-// scoped to one unit's full history.
+// per-equipment History modal (since removed — SPEC.md "remove the
+// History button"); this is now the only place to view them, grouped by
+// System/Equipment the same way the maintenance table is.
 import { escapeHTML } from '../lib/html.js'
 import { ICONS } from '../lib/icons.js'
 import { formatDateTimeDMY } from '../lib/dateFormat.js'
-// Same short label historyModal.js's own table preview uses — reused
-// directly rather than duplicated, since this is the identical
+// Reused directly rather than duplicated, since this is the identical
 // table-preview context (unlike docxExport.js/pdfExport.js, which have
 // their own copies because a printed document has genuinely different
 // formatting needs — see SPEC.md "Swap direction in History/exports").
-import { operationActionLabel } from './historyModal.js'
+import { operationActionLabel } from './operationEventDisplay.js'
 
 export function renderOperationSystemsHTML(systems, operationEvents, permissions, equipmentStatuses, profileNames) {
   const allEquipment = systems.flatMap((s) => s.equipment)
@@ -60,16 +59,15 @@ function renderEquipmentSection(equipment, operationEvents, permissions, equipme
 
   const runningTag = equipmentStatuses.get(equipment.id) === 'Running' ? '<span class="running">(Running)</span>' : ''
 
-  // Same column set as historyModal.js's own table (Timestamp/Action/By/
-  // Comment/actions) — SPEC.md "operation view: match History's row
-  // layout" — so a record looks identical whether reached from here or
-  // from History.
+  // Same column set the old History modal's own table used (Timestamp/
+  // Action/By/Comment/actions) — SPEC.md "operation view: match History's
+  // row layout" — kept even after that modal's removal, since this is now
+  // the only place these are shown.
   return `
     <div class="equipment-block">
       <h3 class="equipment-header">
         ${escapeHTML(equipment.name)}
         ${runningTag}
-        <button type="button" class="history-button" data-action="history" data-equipment-id="${equipment.id}">History</button>
       </h3>
       <table class="records-table history-table">
         <colgroup>
@@ -96,7 +94,7 @@ function renderEventRow(event, equipmentId, permissions, nameOf, profileNames) {
   const canEdit = permissions.isAdmin || isOwnEvent || Boolean(permissions.grantedEventIds?.has(event.id))
   const canManageAccess = permissions.isAdmin || isOwnEvent
 
-  // Same shape as historyModal.js's own renderEventsTable — deleted
+  // Same menu shape as recordsTable.js's maintenance rows — deleted
   // events only ever reach here for an admin (RLS hides them from
   // everyone else).
   const menuItems = isDeleted

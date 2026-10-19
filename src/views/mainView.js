@@ -21,7 +21,7 @@ import { openMaintenanceRecordModal } from './recordModal.js'
 import { openOperationEventModal } from './operationEventModal.js'
 import { openNewRecordModal } from './newRecordModal.js'
 import { openViewRecordModal } from './viewRecordModal.js'
-import { openHistoryModal, openViewOperationEventModal, operationActionDescription } from './historyModal.js'
+import { openViewOperationEventModal, operationActionDescription } from './operationEventDisplay.js'
 import { openManageUsersModal } from './manageUsersModal.js'
 import { openManageRecordAccessModal } from './manageRecordAccessModal.js'
 import { openChangePasswordModal } from './changePasswordModal.js'
@@ -414,23 +414,6 @@ export async function renderMainView(container, { session, onSignOut }) {
     const button = event.target.closest('button[data-action]')
     if (!button) return
 
-    if (button.dataset.action === 'history') {
-      const equipment = state.systems
-        .flatMap((s) => s.equipment)
-        .find((e) => e.id === button.dataset.equipmentId)
-      if (!equipment) return
-      openHistoryModal({
-        equipment,
-        systems: state.systems,
-        equipmentStatuses: state.equipmentStatuses,
-        profileNames: state.profileNames,
-        userId: session.user.id,
-        isAdmin: state.profile?.role === 'admin',
-        onChanged: reload,
-      })
-      return
-    }
-
     // Operation-event rows (operationEventsTable.js) carry data-record-type
     // so they route here instead of falling through to the maintenance
     // handling below — the two share action names (view/edit/delete/...)
@@ -557,11 +540,8 @@ export async function renderMainView(container, { session, onSignOut }) {
 
   // Mirrors the maintenance-record handlers above, one level up: those
   // dispatch from a record's own row-menu click; this dispatches from an
-  // operation-event row's (operationEventsTable.js). Kept here rather than
-  // duplicating historyModal.js's own nearly-identical dispatch, since
-  // historyModal.js only ever shows ONE equipment's events at a time (its
-  // `equipment` is fixed for the life of that modal) while this view spans
-  // every tracked equipment at once — the two aren't quite the same shape.
+  // operation-event row's (operationEventsTable.js), which spans every
+  // tracked equipment at once rather than being scoped to a single unit.
   function allEquipmentList() {
     return state.systems.flatMap((s) => s.equipment)
   }

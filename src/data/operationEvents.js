@@ -106,7 +106,7 @@ export async function softDeleteOperationEvent(id) {
 }
 
 // Admin, or the record's own creator within a 20s self-undo window right
-// after they deleted it (see historyModal.js's showUndoToast() call and
+// after they deleted it (see mainView.js's showUndoToast() call and
 // 20261015000000_self_undo_delete.sql) — restore_operation_event() checks
 // both server-side too.
 export async function restoreOperationEvent(id) {

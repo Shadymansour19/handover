@@ -172,10 +172,11 @@ function maintenanceRow(record) {
 }
 
 // A printed document has no "View" modal to drill into for more detail
-// the way the app's History table does, so this is the full descriptive
-// sentence (historyModal.js's operationActionDescription) rather than its
-// short table-preview form — spells out which equipment stopped and which
-// took over instead of leaving the reader to infer direction from a dash.
+// the way the app's Operations table does, so this is the full
+// descriptive sentence (operationEventDisplay.js's
+// operationActionDescription) rather than its short table-preview form —
+// spells out which equipment stopped and which took over instead of
+// leaving the reader to infer direction from a dash.
 function operationActionLabel(event, equipmentId, nameOf) {
   const isSecondarySide = event.secondary_equipment_id === equipmentId
   if (isSecondarySide) return `This equipment took over; ${nameOf(event.equipment_id)} stopped.`
