@@ -18,6 +18,9 @@ not phases.
   policies, deployed automatically via Supabase's GitHub integration.
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) — frontend folder layout.
 - [PLAN.md](PLAN.md) — phased build plan.
+- [MAINTAINING.md](MAINTAINING.md) — how to edit, upgrade, deploy and
+  troubleshoot by hand (no AI assistant needed). Start here if you're
+  taking over the project.
 
 ## Setup
 
@@ -74,7 +77,11 @@ not phases.
    settings *before* deploying (`.env.local` is gitignored, Vercel never
    sees it), then deploy — every `git push` after that auto-redeploys.
 
-## What's implemented (Phase 1 + 2 + 3 + 4 + 4.5 + 5)
+## What's implemented (original phases; later changes are in SPEC.md's decision log)
+
+> Note: the separate per-equipment "History" button/modal described below
+> was later removed — the Operations view in the main screen replaced it
+> (see SPEC.md). Check SPEC.md's dated log for other changes since.
 
 - Username-or-email + password login screen, session handling, sign-out.
 - Main view: shows the signed-in user's username + role (admin/user),
