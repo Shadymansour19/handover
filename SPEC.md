@@ -24,6 +24,18 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-21) — "Previous week" filter preset
+
+Added a fourth quick-filter preset (filterModal.js) alongside Last 7 days/
+Last 30 days/This month: "Previous week" — `lib/dateRange.js`'s
+`getPreviousWeekRange()`. Unlike "Last 7 days" (a rolling window ending
+today), this is the fixed calendar week before the current one, Monday
+through Sunday (ISO week) — picked since the project had no prior
+week-start convention on record; revisit if the user actually wants
+Sunday-Saturday instead. Verified directly (not just reasoned through): ran
+the function in Node across all seven days of a known week, confirming it
+returns the same Mon–Sun range regardless of which day "today" falls on.
+
 ## Decision (2026-10-21) — bold text in multi-line fields
 
 Asked to extend the multi-line field formatting toolbar (Indent/Outdent)

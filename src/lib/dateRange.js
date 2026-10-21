@@ -34,6 +34,19 @@ export function getThisMonthRange() {
   return { from: toISODate(from), to: toISODate(today) }
 }
 
+// Monday-Sunday (ISO week), not the last 7 days from today — the point of
+// this preset is "the calendar week before this one," distinct from
+// getDefaultRange()'s rolling last-7-days.
+export function getPreviousWeekRange() {
+  const today = new Date()
+  const day = today.getDay() // 0 = Sunday, ..., 6 = Saturday
+  const daysSinceMonday = day === 0 ? 6 : day - 1
+  const thisMonday = new Date(today.getTime() - daysSinceMonday * DAY_MS)
+  const prevMonday = new Date(thisMonday.getTime() - 7 * DAY_MS)
+  const prevSunday = new Date(thisMonday.getTime() - DAY_MS)
+  return { from: toISODate(prevMonday), to: toISODate(prevSunday) }
+}
+
 // `<input type="datetime-local">` needs "YYYY-MM-DDTHH:MM" in the viewer's
 // local time (not UTC) — the browser interprets that value as local time
 // both when reading it back out and when displaying it, so this pairs with

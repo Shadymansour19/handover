@@ -1,6 +1,6 @@
 import { openModal } from '../lib/modal.js'
 import { escapeHTML } from '../lib/html.js'
-import { getDefaultRange, getLast30DaysRange, getThisMonthRange } from '../lib/dateRange.js'
+import { getDefaultRange, getLast30DaysRange, getThisMonthRange, getPreviousWeekRange } from '../lib/dateRange.js'
 
 // Date-range + text search + (admin-only) "show deleted" filter, as a
 // dialog. Used to be an always-visible inline form in the toolbar; moved
@@ -17,6 +17,7 @@ import { getDefaultRange, getLast30DaysRange, getThisMonthRange } from '../lib/d
 // for them.
 const PRESETS = [
   { label: 'Last 7 days', getRange: getDefaultRange },
+  { label: 'Previous week', getRange: getPreviousWeekRange },
   { label: 'Last 30 days', getRange: getLast30DaysRange },
   { label: 'This month', getRange: getThisMonthRange },
 ]
