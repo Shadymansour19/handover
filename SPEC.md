@@ -78,6 +78,75 @@ real generated `.pdf` to an actual image (`pdftoppm`) and visually
 confirmed the bold words appear genuinely bold alongside plain text in the
 same sentence, including inside a nested (indented) bullet.
 
+**Follow-up (2026-10-21)** — live bold/bullet rendering in the editor.
+Asked for bold (and then bullets) to render as they'll actually look while
+typing, not as literal `**markers**`/tabs. A plain `<textarea>` can't do
+this at all — it only ever shows uniform plain text — so this replaces it
+with `lib/richTextField.js`: a `contenteditable` region where each line is
+its own `.rich-line` div, `data-depth` driving both a live bullet glyph
+and the indent via CSS (records.css — same •/◦/▪-every-3-levels scheme the
+exports already use), and bold runs are real `<strong>` elements. Flagged
+first that this is a genuinely bigger rewrite than anything else in this
+feature, with more edge-case risk (cursor handling, paste, cross-browser
+quirks) than a plain textarea — confirmed before starting.
+
+`lib/listFormatToolbar.js` was rewritten to match: Indent/Outdent now
+walk whichever `.rich-line`s the current selection touches and adjust
+their `data-depth`, and Bold now calls the browser's own
+`document.execCommand('bold')` rather than hand-rolling the Range surgery
+a correct toggle needs (splitting a partially-bold selection, merging
+adjacent bold runs) — deprecated as a spec, still universally supported
+for exactly this kind of simple boolean toggle. Enter, Backspace-at-a-
+line's-start, and paste are all handled by hand (`richTextField.js`)
+rather than trusted to the browser's own inconsistent contenteditable
+defaults — new lines inherit the current line's depth (continuing a
+nested bullet keeps its indent until explicitly outdented), Backspace at
+a line's start merges it into the previous line rather than letting the
+browser's cross-block-boundary handling risk corrupting the `.rich-line`
+structure it doesn't know about, and paste is forced to plain text
+(stripping whatever formatting a pasted Word doc/web page would otherwise
+bring in, since this editor has no model for anything beyond depth+bold).
+Known, accepted limitation: a selection spanning multiple lines being
+deleted or typed over isn't specially handled — left to the browser's
+default behavior, which usually still works reasonably but isn't
+hardened the way the single-line cases are.
+
+Two real bugs surfaced during verification, both now fixed:
+
+- **Clicking the field didn't focus it at all.** A `<label>` containing a
+  `<button>` forwards every click anywhere inside it to that button —
+  standard (if obscure) browser label semantics: a label with multiple
+  labelable children just picks one to always activate — not specific to
+  this code, but it made every field broken for the small reason that its
+  own toolbar's buttons live in the same label. Worked around in
+  `attachListFormatToolbar()`: intercepts the label's own click, before
+  the browser's default forwarding runs, and sends focus to the actual
+  field instead unless the click was genuinely on a toolbar button.
+- **A line produced by splitting right at the end of its text (the
+  ordinary case for pressing Enter at a line's end) could end up invisible
+  and uneditable.** `Range.extractContents()` leaves an empty text node —
+  or, splitting right after a bold run, an empty `<strong>`/`<b>` — behind
+  as a boundary artifact even when nothing was actually extracted; the
+  code checking whether a line needed its placeholder `<br>` only checked
+  for zero children or exactly one `<br>`, missing both cases, so some
+  freshly-split lines never got one. Fixed by making that check recursive
+  (`hasVisibleContent()`): an element only counts as content if one of
+  its own children does, so an empty nested element no longer reads as
+  "this line already has something in it."
+
+Verified directly, not just reasoned about — both of the above were found
+by testing in a real browser, not predicted in advance: typing text,
+pressing Enter repeatedly, Tab/Shift+Tab to indent/outdent, Ctrl+B and the
+toolbar's Bold button, and Backspace merging a line into the previous one,
+all through real clicks and real keystrokes. Then the full pipeline
+end-to-end through the actual `recordModal.js` form: typed a nested,
+bolded field through the real UI, submitted it (case normalization,
+spellcheck), opened the real View modal and confirmed correct nested
+`<strong>` rendering, then re-rendered the same form in Edit mode with the
+saved record and confirmed the field correctly re-populates with matching
+depth/text/bold — a full round-trip through actual Edit, not just the
+underlying get/set functions in isolation.
+
 ## Decision (2026-10-19) — remove the History button
 
 Asked, conditionally: now that the Operations view shows the same

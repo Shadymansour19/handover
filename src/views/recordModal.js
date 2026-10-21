@@ -6,6 +6,7 @@ import { todayISO } from '../lib/dateRange.js'
 import { toTitleCase, capitalizeLines } from '../lib/textCase.js'
 import { attachListFormatToolbar } from '../lib/listFormatToolbar.js'
 import { runSpellcheck } from '../lib/spellcheckFlow.js'
+import { setRichTextValue, getRichTextValue, initRichTextField } from '../lib/richTextField.js'
 
 // Fills `container` with the Maintenance form and wires it — no modal
 // opening here, so this can be embedded either standalone (edit, via
@@ -66,7 +67,8 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       </label>
       <label>
         <span class="field-label-row">Detailed steps (one step per line)</span>
-        <textarea id="field-detailed-steps" rows="4" spellcheck="true" autocorrect="on">${escapeHTML(initial.detailed_steps ?? '')}</textarea>
+        <div id="field-detailed-steps" class="rich-textarea rich-textarea--tall" contenteditable="true"
+             spellcheck="true" autocorrect="on"></div>
       </label>
       <div class="form-row">
         <label>Work status
@@ -79,11 +81,11 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       </div>
       <label>
         <span class="field-label-row">Comments (one point per line)</span>
-        <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
+        <div id="field-comment" class="rich-textarea" contenteditable="true" spellcheck="true" autocorrect="on"></div>
       </label>
       <label>
         <span class="field-label-row">Pending (one point per line)</span>
-        <textarea id="field-pending" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.pending ?? '')}</textarea>
+        <div id="field-pending" class="rich-textarea" contenteditable="true" spellcheck="true" autocorrect="on"></div>
       </label>
       <p id="record-form-error" class="status status--error" hidden></p>
       <div class="modal-actions">
@@ -103,9 +105,19 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
   const form = container.querySelector('#record-form')
   const workScopeSuggestions = container.querySelector('#field-work-scope-suggestions')
 
-  attachListFormatToolbar(container.querySelector('#field-detailed-steps'))
-  attachListFormatToolbar(container.querySelector('#field-comment'))
-  attachListFormatToolbar(container.querySelector('#field-pending'))
+  const detailedStepsField = container.querySelector('#field-detailed-steps')
+  const commentField = container.querySelector('#field-comment')
+  const pendingField = container.querySelector('#field-pending')
+
+  setRichTextValue(detailedStepsField, initial.detailed_steps ?? '')
+  setRichTextValue(commentField, initial.comment ?? '')
+  setRichTextValue(pendingField, initial.pending ?? '')
+  initRichTextField(detailedStepsField)
+  initRichTextField(commentField)
+  initRichTextField(pendingField)
+  attachListFormatToolbar(detailedStepsField)
+  attachListFormatToolbar(commentField)
+  attachListFormatToolbar(pendingField)
 
   function populateEquipment(systemId, selectedEquipmentId) {
     const system = systems.find((s) => s.id === systemId)
@@ -202,11 +214,11 @@ export function renderMaintenanceForm(container, { mode, record, systems, onSave
       // are applied here, once, on submit — not live as the user types,
       // so mid-typing text never jumps around under their cursor.
       work_scope: toTitleCase(container.querySelector('#field-work-scope').value.trim()),
-      detailed_steps: capitalizeLines(container.querySelector('#field-detailed-steps').value),
+      detailed_steps: capitalizeLines(getRichTextValue(detailedStepsField)),
       work_status: statusSelect.value,
       work_status_other: statusSelect.value === 'Other' ? otherInput.value.trim() : null,
-      comment: capitalizeLines(container.querySelector('#field-comment').value),
-      pending: capitalizeLines(container.querySelector('#field-pending').value) || null,
+      comment: capitalizeLines(getRichTextValue(commentField)),
+      pending: capitalizeLines(getRichTextValue(pendingField)) || null,
     }
 
     const submitButton = form.querySelector('button[type="submit"]')

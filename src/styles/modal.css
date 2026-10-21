@@ -145,7 +145,8 @@
 
 .record-form input,
 .record-form select,
-.record-form textarea {
+.record-form textarea,
+.record-form .rich-textarea {
   padding: 0.5rem;
   border-radius: 4px;
   border: 1px solid var(--border);
@@ -157,6 +158,82 @@
 
 .record-form textarea {
   resize: vertical;
+}
+
+/* lib/richTextField.js's contenteditable replacement for a plain textarea
+   on the multi-line fields (detailed_steps/comment/pending) — SPEC.md
+   "live bold/bullet rendering in the editor". Sized to roughly match the
+   textareas it replaced (~3 rows; --tall for detailed_steps' old 4) —
+   contenteditable has no `rows` attribute to size it the way a textarea
+   could. overflow-y auto rather than resize: vertical (not supported on a
+   plain div) — the field grows with its own scrollbar past that height
+   instead of the page growing around it. */
+.rich-textarea {
+  min-height: 4.5em;
+  max-height: 16em;
+  overflow-y: auto;
+  cursor: text;
+}
+
+.rich-textarea--tall {
+  min-height: 6em;
+}
+
+.rich-textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* One real bullet per line, purely via CSS (::before, not actual DOM
+   text) — keeps the glyph out of the editable content entirely, so it's
+   never accidentally selected, deleted, or counted as part of the line's
+   text. `data-depth` (lib/richTextField.js) drives both the indent and
+   which glyph — same •/◦/▪ repeating-every-3-levels scheme the Word/PDF
+   exports already use (docxExport.js/pdfExport.js), so a record looks the
+   same nested shape while editing as it will once saved. */
+.rich-line {
+  position: relative;
+  padding-left: 1.2em;
+}
+
+.rich-line + .rich-line {
+  margin-top: 0.15rem;
+}
+
+.rich-line::before {
+  content: '•';
+  position: absolute;
+  left: 0.2em;
+}
+
+.rich-line[data-depth='1']::before,
+.rich-line[data-depth='4']::before {
+  content: '◦';
+}
+
+.rich-line[data-depth='2']::before,
+.rich-line[data-depth='5']::before {
+  content: '▪';
+}
+
+.rich-line[data-depth='1'] {
+  margin-left: 1.3em;
+}
+
+.rich-line[data-depth='2'] {
+  margin-left: 2.6em;
+}
+
+.rich-line[data-depth='3'] {
+  margin-left: 3.9em;
+}
+
+.rich-line[data-depth='4'] {
+  margin-left: 5.2em;
+}
+
+.rich-line[data-depth='5'] {
+  margin-left: 6.5em;
 }
 
 /* filterModal.js's "Show deleted" checkbox reuses .checkbox-label (layout.css)

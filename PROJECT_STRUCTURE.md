@@ -63,16 +63,25 @@ handover/
     │   │                       # threshold without an update — see SPEC.md "stale-record flagging"
     │   ├── undoToast.js        # showUndoToast(): short-lived "Undo" toast after a soft-delete
     │   ├── bullets.js          # \n-text -> (possibly nested) bullet-list HTML for the View modal —
-    │   │                       # a line's leading tabs (listFormatToolbar.js) set its nesting depth,
+    │   │                       # a line's leading tabs (richTextField.js) set its nesting depth,
     │   │                       # inlineFormatting.js's **bold** markers become <strong>
     │   ├── inlineFormatting.js     # parseInlineBold(): **bold** markers -> {text, bold} segments —
     │   │                           # shared parsing, one rendering step per target (bullets.js,
-    │   │                           # docxExport.js, pdfExport.js)
+    │   │                           # docxExport.js, pdfExport.js, richTextField.js)
+    │   ├── richTextField.js    # contenteditable model for the multi-line fields (detailed_steps/
+    │   │                       # comment/pending, operation events' own comment) — one `.rich-line`
+    │   │                       # div per line (depth via `data-depth`, driving a live bullet glyph
+    │   │                       # + indent via CSS), live `<strong>` for bold. Replaced a plain
+    │   │                       # `<textarea>` so bold/bullets render as they'll actually look while
+    │   │                       # editing, not as literal `**markers**`/tabs — SPEC.md "live
+    │   │                       # bold/bullet rendering in the editor". getRichTextValue()/
+    │   │                       # setRichTextValue() are what recordModal.js/operationEventModal.js
+    │   │                       # use in place of a textarea's `.value`
     │   ├── textCase.js         # toTitleCase() (work_scope) / capitalizeLines() (the other
     │   │                       # multi-line fields) — applied once, on submit; capitalizes the
     │   │                       # first LETTER, skipping past a leading **bold** marker if present
-    │   ├── listFormatToolbar.js    # Outdent/Indent/Bold toolbar for a multi-line field's textarea —
-    │   │                           # attachListFormatToolbar(textarea); Tab/Shift+Tab/Ctrl+B do the same
+    │   ├── listFormatToolbar.js    # Outdent/Indent/Bold toolbar for a richTextField.js field —
+    │   │                           # attachListFormatToolbar(el); Tab/Shift+Tab/Ctrl+B do the same
     │   ├── spellcheck.js       # findMisspellings()/suggestionsFor() — nspell + dictionary-en
     │   │                       # (lazy-loaded; see SPEC.md "spellcheck on submit")
     │   ├── spellcheckFlow.js   # runSpellcheck(): loops the per-word suggestion dialog over every

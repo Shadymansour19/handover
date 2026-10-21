@@ -16,6 +16,7 @@ import {
 import { capitalizeLines } from '../lib/textCase.js'
 import { attachListFormatToolbar } from '../lib/listFormatToolbar.js'
 import { runSpellcheck } from '../lib/spellcheckFlow.js'
+import { setRichTextValue, getRichTextValue, initRichTextField } from '../lib/richTextField.js'
 
 // Fills `container` with the Operation form and wires it. Field order
 // (Action -> Timestamp -> System -> Equipment -> Secondary -> Comment)
@@ -81,7 +82,7 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
         <select id="field-secondary"></select>
       </label>
       <label>Comment (one point per line)
-        <textarea id="field-comment" rows="3" spellcheck="true" autocorrect="on">${escapeHTML(initial.comment ?? '')}</textarea>
+        <div id="field-comment" class="rich-textarea" contenteditable="true" spellcheck="true" autocorrect="on"></div>
       </label>
       <p id="operation-form-error" class="status status--error" hidden></p>
       <div class="modal-actions">
@@ -100,7 +101,10 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
   const errorEl = container.querySelector('#operation-form-error')
   const form = container.querySelector('#operation-form')
 
-  attachListFormatToolbar(container.querySelector('#field-comment'))
+  const commentField = container.querySelector('#field-comment')
+  setRichTextValue(commentField, initial.comment ?? '')
+  initRichTextField(commentField)
+  attachListFormatToolbar(commentField)
 
   function trackedEquipment(systemId) {
     const system = trackedSystems.find((s) => s.id === systemId)
@@ -188,7 +192,7 @@ export function renderOperationForm(container, { mode, record, systems, equipmen
       system_id: systemSelect.value,
       equipment_id: equipmentSelect.value,
       secondary_equipment_id: actionSelect.value === 'Swap' ? secondarySelect.value : null,
-      comment: capitalizeLines(container.querySelector('#field-comment').value),
+      comment: capitalizeLines(getRichTextValue(commentField)),
     }
 
     const submitButton = form.querySelector('button[type="submit"]')
