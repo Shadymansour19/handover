@@ -19,6 +19,7 @@ import {
 } from 'docx'
 import { buildEquipmentTimeline } from './combinedTimeline.js'
 import { formatDateDMY, formatDateTimeDMY } from './dateFormat.js'
+import { parseInlineBold } from './inlineFormatting.js'
 
 const SYSTEM_BANNER_FILL = '1E293B' // matches --surface-alt
 const EQUIPMENT_HEADER_COLOR = '2563EB'
@@ -129,7 +130,12 @@ function bulletParagraphs(text) {
       ({ level, content }) =>
         new Paragraph({
           numbering: { reference: BULLET_NUMBERING_REFERENCE, level },
-          children: [new TextRun({ text: content })],
+          // `**bold**` markers (lib/listFormatToolbar.js's Bold button) —
+          // one TextRun per segment, bold flag set per segment, same
+          // split lib/bullets.js's web rendering uses.
+          children: parseInlineBold(content).map(
+            (segment) => new TextRun({ text: segment.text, bold: segment.bold })
+          ),
         })
     )
 }

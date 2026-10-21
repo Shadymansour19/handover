@@ -9,6 +9,7 @@
 // only the rendering API differs.
 import { buildEquipmentTimeline } from './combinedTimeline.js'
 import { formatDateDMY, formatDateTimeDMY } from './dateFormat.js'
+import { parseInlineBold } from './inlineFormatting.js'
 
 const SYSTEM_BANNER_FILL = '#1e293b' // matches --surface-alt
 const EQUIPMENT_HEADER_COLOR = '#2563eb'
@@ -106,10 +107,21 @@ function buildBulletTree(items) {
   return root
 }
 
+// `**bold**` markers (lib/listFormatToolbar.js's Bold button) — a line
+// with no markers stays a plain string (pdfmake accepts that directly as
+// a list item); one WITH a marker becomes `{ text: [...] }`, pdfmake's own
+// format for mixed inline runs within one item, same bold/plain split
+// docxExport.js's TextRuns use.
+function renderListItemContent(content) {
+  const segments = parseInlineBold(content)
+  if (segments.length === 1 && !segments[0].bold) return content
+  return { text: segments.map((segment) => (segment.bold ? { text: segment.text, bold: true } : { text: segment.text })) }
+}
+
 function treeToPdfList(nodes) {
   const items = []
   for (const node of nodes) {
-    items.push(node.content)
+    items.push(renderListItemContent(node.content))
     if (node.children.length > 0) items.push({ ul: treeToPdfList(node.children) })
   }
   return items

@@ -1,4 +1,5 @@
 import { escapeHTML } from './html.js'
+import { parseInlineBold } from './inlineFormatting.js'
 
 // Multi-line fields (detailed_steps, comment, pending) are stored as plain
 // text with \n-separated lines (see SPEC.md "Other assumptions"), rendered
@@ -33,10 +34,21 @@ function buildTree(items) {
   return root
 }
 
+// `**bold**` markers (lib/listFormatToolbar.js's Bold button) — escape
+// first (XSS safety for the actual text), then wrap each bold segment in
+// <strong>. Asterisks survive escaping untouched, so this order is safe:
+// nothing a bold span's own text contains can smuggle in a tag the
+// escaping step didn't already neutralize.
+function renderInline(text) {
+  return parseInlineBold(text)
+    .map((segment) => (segment.bold ? `<strong>${escapeHTML(segment.text)}</strong>` : escapeHTML(segment.text)))
+    .join('')
+}
+
 function renderNodes(nodes) {
   if (nodes.length === 0) return ''
   const items = nodes
-    .map((node) => `<li>${escapeHTML(node.content)}${renderNodes(node.children)}</li>`)
+    .map((node) => `<li>${renderInline(node.content)}${renderNodes(node.children)}</li>`)
     .join('')
   return `<ul class="bullet-list">${items}</ul>`
 }

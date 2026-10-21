@@ -11,8 +11,16 @@ const SMALL_WORDS = new Set([
   'via', 'with', 'yet',
 ])
 
+// Capitalizes the first LETTER, not necessarily the first character —
+// capitalizeLines() can be handed a line starting with a `**bold**`
+// marker (lib/listFormatToolbar.js), and `.charAt(0).toUpperCase()` on
+// "*" is a silent no-op, which would leave the actual first word
+// lowercase ("**important**..." never getting capitalized at all).
+// `.replace()` with a non-global regex only touches the first match, so
+// everything before and after that one letter — including the markers —
+// passes through untouched.
 function capitalizeWord(word) {
-  return word.charAt(0).toUpperCase() + word.slice(1)
+  return word.replace(/[a-zA-Z]/, (letter) => letter.toUpperCase())
 }
 
 // Record title (work_scope) — every word capitalized except the small

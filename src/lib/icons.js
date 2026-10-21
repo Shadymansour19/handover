@@ -63,6 +63,11 @@ const INDENT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stro
 
 const OUTDENT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 3 12 7 16"/><line x1="11" y1="6" x2="21" y2="6"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="11" y1="18" x2="21" y2="18"/></svg>`
 
+// Same 14x14 toolbar scale as INDENT/OUTDENT above — a plain bold "B",
+// filled rather than stroked (a stroked "B" at this size reads as a
+// blob, not a letter).
+const BOLD = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none"><path d="M6 4h7a4.5 4.5 0 0 1 3.3 7.6A5 5 0 0 1 14 21H6V4zm3.2 3v4.3h3.3a2.15 2.15 0 0 0 0-4.3H9.2zm0 7.1V18h4a2.45 2.45 0 0 0 0-4.9H9.2z"/></svg>`
+
 export const ICONS = {
   view: VIEW,
   edit: EDIT,
@@ -82,4 +87,5 @@ export const ICONS = {
   share: SHARE,
   indent: INDENT,
   outdent: OUTDENT,
+  bold: BOLD,
 }

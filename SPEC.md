@@ -24,6 +24,60 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-21) — bold text in multi-line fields
+
+Asked to extend the multi-line field formatting toolbar (Indent/Outdent)
+with bold text.
+
+`lib/inlineFormatting.js`'s `parseInlineBold()` recognizes `**bold**`
+markers (Markdown-style, but only that one marker — no italics, headings,
+or links) and splits a line into `{ text, bold }` segments; one shared
+parsing step, one rendering step per target:
+
+- **`lib/bullets.js`** (View modal) — a bold segment becomes `<strong>`;
+  escaping happens first, so a bold span's own text can't smuggle in a tag
+  the escaping step didn't already neutralize.
+- **`docxExport.js`** — one `TextRun` per segment, `bold` set per segment,
+  instead of the single `TextRun` a bullet line used to be.
+- **`pdfExport.js`** — a line with no markers stays a plain string (what a
+  pdfmake list item already accepted); one with markers becomes
+  `{ text: [...] }`, pdfmake's own format for mixed inline runs.
+
+**Toolbar** (`lib/listFormatToolbar.js`) — a third button, Bold, toggles
+`**` around the current selection: selecting text already wrapped exactly
+in `**` removes the markers, selecting anything else adds them. With
+nothing selected, it inserts an empty `**` pair and places the cursor
+between them, ready to type. Ctrl+B (Cmd+B on Mac) inside the field does
+the same thing, alongside the existing Tab/Shift+Tab for indent — scoped
+to the field itself, so it doesn't collide with `mainView.js`'s own global
+N/F/O/P shortcuts (those already skip themselves whenever focus is in a
+text field). Deliberately simple, not a full rich-text selection model: it
+toggles the exact selection, not whatever bold span might surround it —
+reselecting a sub-range of an already-bold span and clicking Bold wraps a
+second, nested pair rather than detecting and adjusting the outer one.
+
+**`lib/textCase.js`'s `capitalizeWord()` needed a fix to coexist with
+this**: it used to capitalize literally the first character
+(`.charAt(0).toUpperCase()`), which is a silent no-op on `*` — a line
+starting with a bold marker ("**important** check this") would never get
+capitalized at all. Changed to capitalize the first LETTER instead
+(`.replace(/[a-zA-Z]/, ...)`, which only touches the first match),
+correctly skipping past any leading markers.
+
+Verified directly: in a real browser, selecting text and clicking Bold
+wraps it, clicking Bold again on that exact selection unwraps it, clicking
+with nothing selected inserts an empty pair with the cursor correctly
+positioned between the markers, and Ctrl+B does the same as the button.
+Ran a bold-marked field through the full submit pipeline (case
+normalization, then the real View modal) and confirmed the markers survive
+capitalization and render as genuine `<strong>` text. For the exports:
+unzipped a real generated `.docx` and inspected `word/document.xml`
+directly — confirmed the non-bold and bold runs carry `<w:b w:val="false"/>`
+and `<w:b/>` respectively, not just that the file built; and rendered a
+real generated `.pdf` to an actual image (`pdftoppm`) and visually
+confirmed the bold words appear genuinely bold alongside plain text in the
+same sentence, including inside a nested (indented) bullet.
+
 ## Decision (2026-10-19) — remove the History button
 
 Asked, conditionally: now that the Operations view shows the same
