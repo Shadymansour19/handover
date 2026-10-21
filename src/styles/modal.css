@@ -318,3 +318,10 @@
   gap: 0.5rem;
   margin: 1rem 0;
 }
+
+/* Three action buttons (Add to Dictionary/Skip all/Skip) run wider than any
+   other .modal-actions row in the app — wraps instead of overflowing on a
+   narrow phone screen, rather than changing every other dialog's layout. */
+.spellcheck-actions {
+  flex-wrap: wrap;
+}

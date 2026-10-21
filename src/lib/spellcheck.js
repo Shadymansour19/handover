@@ -24,9 +24,48 @@ function getSpeller() {
     spellerPromise = Promise.all([
       import('/node_modules/dictionary-en/index.aff?raw'),
       import('/node_modules/dictionary-en/index.dic?raw'),
-    ]).then(([{ default: aff }, { default: dic }]) => nspell(aff, dic))
+    ]).then(([{ default: aff }, { default: dic }]) => {
+      const speller = nspell(aff, dic)
+      for (const word of loadCustomWords()) speller.add(word)
+      return speller
+    })
   }
   return spellerPromise
+}
+
+// "Add to Dictionary" (spellcheckFlow.js) persists here — this device only,
+// no backend of its own to sync it through (same reasoning as everything
+// else in this file being a local Hunspell dictionary rather than a hosted
+// service). localStorage, not sessionStorage, since the whole point is for
+// it to survive closing the tab.
+const CUSTOM_DICT_KEY = 'handover-custom-dictionary'
+
+function loadCustomWords() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_DICT_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+// Adds `word` to the persisted custom dictionary and to the already-loaded
+// speller (if any), so it stops being flagged for the rest of this session
+// too, not just after a future reload.
+export async function addToDictionary(word) {
+  const key = word.toLowerCase()
+  const words = loadCustomWords()
+  if (!words.includes(key)) {
+    words.push(key)
+    try {
+      localStorage.setItem(CUSTOM_DICT_KEY, JSON.stringify(words))
+    } catch {
+      // Storage full/unavailable (private browsing, etc.) — the word still
+      // gets added to the in-memory speller below, just won't persist.
+    }
+  }
+  const speller = await getSpeller()
+  speller.add(key)
 }
 
 // Letters and internal apostrophes only ("don't", "it's") — numbers,

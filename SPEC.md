@@ -24,6 +24,36 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-21) — spellcheck: "Add to Dictionary" and "Skip all"
+
+Extended the per-word spellcheck dialog (lib/spellcheckFlow.js) with two
+more actions alongside the suggestion buttons and "Skip": "Add to
+Dictionary" and "Skip all".
+
+"Add to Dictionary" persists the word (lowercased) to `localStorage`
+(`lib/spellcheck.js`'s `addToDictionary()`, key `handover-custom-dictionary`)
+and adds it to the already-loaded `nspell` instance immediately, so it
+stops being flagged for the rest of the current session too, not just
+after a future reload — this device only, no backend of its own to sync
+it through, same reasoning as the dictionary itself being a local Hunspell
+dictionary rather than a hosted spellcheck API.
+
+"Skip all" stops the entire spellcheck pass — not just the remaining
+occurrences of the current word, but every other misspelled word in every
+other field still left to check — leaving the rest of the text exactly as
+typed. Distinct from the existing "Skip", which only dismisses the current
+word (already applied to every occurrence of that one word, since the
+flow prompts once per distinct word, not once per occurrence).
+
+Verified directly against the real modules (Playwright, not a reimplemented
+stand-in): typed two misspelled words, "Add to Dictionary" on the first and
+a suggestion-click on the second, confirmed the first word was written to
+`localStorage` and the resulting text was replaced correctly; ran a fresh
+spellcheck pass containing the dictionary word again and confirmed no
+dialog appeared and the text was returned unchanged; then ran a pass with
+misspellings across two fields and confirmed clicking "Skip all" on the
+very first word left both fields completely untouched.
+
 ## Decision (2026-10-21) — "Previous week" filter preset
 
 Added a fourth quick-filter preset (filterModal.js) alongside Last 7 days/
