@@ -24,6 +24,71 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Follow-up (2026-10-22) — vendor/brand names and control-system tools
+
+Asked to add the vendor names this scan had deliberately left out (GE,
+ABB, MTL, HIMatrix, Det-Tronics, Petroment), plus more: Tyco, Siemens
+control-system tools (SIMATIC PCS 7, SIMATIC Manager, WinCC, TIA Portal,
+InTouch), Allen-Bradley and Wonderware, and "UCP" (Unit Control Panel)
+alongside RIO.
+
+Looked up the real spelling for each one not already confident
+(`WebSearch`) rather than guess:
+
+- **Det-Tronics** — confirmed hyphenated, official brand name (not
+  "Detronics"/"Detronix" as it's sometimes typed in this plant's own
+  records). Same as "re-calibrated": only its two halves ("det"/"tronics")
+  need a dictionary entry, not the hyphenated string itself —
+  `spellcheck.js`'s `WORD_PATTERN` already splits on the hyphen.
+- **Petroment** — no public record of this company turned up at all; kept
+  exactly as this plant's own records already spell it, with a note that
+  it's unverified, unlike every other name added here.
+- **SIMATIC PCS 7 / WinCC / TIA Portal / InTouch / FactoryTalk** —
+  confirmed via Siemens'/Rockwell's/the trade press's own usage. "Portal"
+  and "STEP" (as in STEP 7) are already ordinary English words needing no
+  entry at all; the digits in "PCS 7"/"STEP 7" were never going to be
+  flagged anyway, same reasoning as "GT-8040".
+- **Allen-Bradley** — hyphenated like Det-Tronics, so "allen"/"bradley"
+  cover it without an entry for the hyphenated form itself.
+- **RSLogix** — kept despite Rockwell's rename to "Studio 5000 Logix
+  Designer," since it's still the name most people actually use day to
+  day; also added "logix" on its own for that newer name's sake.
+
+New categories added to `technicalDictionary.js`: "Vendor/manufacturer
+names" and "Control-system software/tools" — both explicitly commented as
+specific to this plant's own suppliers, not generic vocabulary a different
+deployment of this app would necessarily want, unlike everything else in
+the file.
+
+Verified directly: ran realistic sentences mixing every newly added term
+(including the hyphenated Det-Tronics/Allen-Bradley forms) through the
+real speller with the full updated list loaded — zero misspellings
+flagged in any of them. Confirmed no duplicate entries were introduced
+across this and the two edits before it (161 total entries, 0 dupes).
+
+Also added "PCV" beside PSV (edited directly in the file rather than by
+this session — kept as-is, verified it passes in all casings afterward).
+163 total entries, still 0 dupes.
+
+## Follow-up (2026-10-22) — Sikaflex added; file reorganized by category
+
+Two more requests on the DB-scan follow-up below. First: add "Sikaflex"
+(the filler/sealant material) despite it being a brand name — looked up
+the correct spelling directly (Sika's own product pages) rather than
+assume: "Sikaflex" — one word, capital S — confirming the plant's own
+records already had it right. Second: keep `technicalDictionary.js`
+organized by category rather than appending a new dated block per scan —
+re-sectioned every existing entry (nothing removed, confirmed by diffing
+the full word list before/after) into the categories already there
+(coalescer/arrestor into "Rotating equipment & components"; overspeed/
+outstandings into "Conditions, processes & actions"; hmi/emi/sn/jb/rio/
+psv/pdt/pdit/ovs/bsi/gd/stg into "Acronyms") and added a new "Tools,
+consumables & site equipment" category for manlift/Sikaflex, which didn't
+fit anywhere existing. The file's own top comment now says new terms
+belong in whichever category they match, not a new append-only block —
+this SPEC.md log is where the "found on this date, here's why" history
+belongs instead.
+
 ## Follow-up (2026-10-22) — seeded from this plant's real record text
 
 Asked to scan the actual database for engineering words the dictionary
