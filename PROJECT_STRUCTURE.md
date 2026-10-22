@@ -82,9 +82,13 @@ handover/
     │   │                       # first LETTER, skipping past a leading **bold** marker if present
     │   ├── listFormatToolbar.js    # Outdent/Indent/Bold toolbar for a richTextField.js field —
     │   │                           # attachListFormatToolbar(el); Tab/Shift+Tab/Ctrl+B do the same
-    │   ├── spellcheck.js       # findMisspellings()/suggestionsFor() — nspell + dictionary-en
-    │   │                       # (lazy-loaded; see SPEC.md "spellcheck on submit")
-    │   ├── spellcheckFlow.js   # runSpellcheck(): loops the per-word suggestion dialog over every
+    │   ├── spellcheck.js       # findMisspellings()/suggestionsFor()/addToDictionary() — nspell +
+    │   │                       # dictionary-en (lazy-loaded) plus technicalDictionary.js's built-in
+    │   │                       # terms and any user-taught words from localStorage
+    │   ├── technicalDictionary.js  # TECHNICAL_TERMS — industrial/rotating-equipment vocabulary
+    │   │                           # dictionary-en doesn't know (thermocouple, RTD, PLC, HVAC, ...)
+    │   ├── spellcheckFlow.js   # runSpellcheck(): loops the per-word suggestion dialog (pick a
+    │   │                       # suggestion, Skip, Skip all, or Add to Dictionary) over every
     │   │                       # misspelling across a set of fields, called from the submit handlers
     │   ├── html.js             # escapeHTML — shared by every hand-rolled innerHTML template
     │   ├── icons.js            # inline SVG icons — row/table actions plus the FAB cluster and

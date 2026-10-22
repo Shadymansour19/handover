@@ -24,6 +24,44 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Decision (2026-10-22) — built-in technical dictionary
+
+Asked how spellcheck decides a word is misspelled, which surfaced that
+`dictionary-en` (general English) doesn't know practically any of the
+industrial/rotating-equipment vocabulary this app's records are full of —
+confirmed directly: thermocouple, RTD, PLC, HVAC, borescope, multimeter,
+psig all came back unrecognized against the real dictionary.
+
+Added `lib/technicalDictionary.js` — a baked-in `TECHNICAL_TERMS` list
+(turbine/compressor/bearing-type rotating-equipment nouns, instrumentation
+like thermocouple/borescope/multimeter, and common acronyms like RTD/PLC/
+HVAC/SCADA/GTG) added to the speller unconditionally in `spellcheck.js`'s
+`getSpeller()`, before the user's own "Add to Dictionary" words (see the
+entry below) — works out of the box on a brand new device, rather than
+needing every technical term taught by hand first.
+
+Every entry is stored lowercase, including the acronyms — confirmed
+directly that nspell/Hunspell's casing rules accept ANY casing of a
+lowercase-added word (adding "rtd" passes "RTD", "Rtd", and "rtd" alike;
+adding "kva" even passes mixed-case "kVA"), while the reverse doesn't hold
+(adding "RTD" does NOT pass "rtd") — so lowercase is strictly the safer
+choice regardless of how a given term is normally written.
+
+Asked to prefer the hyphenated form ("re-calibrated") over the closed-up
+one ("recalibrated") for words like this. No dictionary entry for the
+closed-up form was needed at all, and none was added for the hyphenated
+form either: `spellcheck.js`'s `WORD_PATTERN` only matches letter runs, so
+a hyphen already splits "re-calibrated" into two separate words to check,
+"re" and "calibrated" — and confirmed directly that both halves of every
+"re-" form actually likely to show up (re-calibrated, re-aligned,
+re-torqued, re-tightened, re-checked, re-installed) are already ordinary
+English words `dictionary-en` recognizes on its own.
+
+Verified end-to-end against the real `spellcheck.js` module (not a
+reimplemented stand-in): a sentence mixing several technical terms, two
+hyphenated "re-" forms, and two genuinely misspelled words ("Teh", "fien")
+came back flagging only the two real misspellings.
+
 ## Decision (2026-10-21) — spellcheck: "Add to Dictionary" and "Skip all"
 
 Extended the per-word spellcheck dialog (lib/spellcheckFlow.js) with two

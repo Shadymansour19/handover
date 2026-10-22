@@ -10,6 +10,7 @@
 // reason for every page load to pay for it when most of them never
 // submit a form.
 import nspell from 'nspell'
+import { TECHNICAL_TERMS } from './technicalDictionary.js'
 
 // `dictionary-en`'s own package.json only exports "./index.js" (a
 // Node-only loader using fs.readFile + import.meta.url — doesn't work in
@@ -26,6 +27,7 @@ function getSpeller() {
       import('/node_modules/dictionary-en/index.dic?raw'),
     ]).then(([{ default: aff }, { default: dic }]) => {
       const speller = nspell(aff, dic)
+      for (const word of TECHNICAL_TERMS) speller.add(word)
       for (const word of loadCustomWords()) speller.add(word)
       return speller
     })
