@@ -24,6 +24,34 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Follow-up (2026-10-22) — broader gas-turbine/compressor vocabulary
+
+Asked "any other terms to add?" — unlike every addition before this one,
+these weren't confirmed from this plant's own saved records, just
+generic gas-turbine/compressor-plant vocabulary likely to come up. Tested
+a broad candidate list against the dictionary first (most candidates,
+like "economizer"/"knockout"/"volute"/"labyrinth"/"depressurization",
+turned out to already be recognized — only genuine gaps are listed below),
+then asked the user which categories of the genuine gaps to actually add
+rather than adding all of them unilaterally, since these are guesses
+about likely vocabulary, not confirmed usage.
+
+Added (both categories the user picked):
+
+- **Process/rotating equipment**: deaerator(s), intercooler(s),
+  aftercooler(s), desander(s), eductor(s), diffuser(s),
+  desuperheater(s), antisurge, venturi(s), rotameter(s), flowmeter(s),
+  wattmeter(s). The user also added "blowdown" and "blowoff" directly in
+  the file while this was in progress — kept as-is, verified both pass.
+- **Controls/electrical acronyms**: DCS, ATS, MOV(s), SOV(s), ESDV(s),
+  BDV(s), PRV(s), LCP(s), RTU(s), Modbus, Profibus, fieldbus.
+
+Skipped (not asked for): uptime, tagout, hotwork.
+
+Verified directly: ran a sentence using every newly added term through
+the real speller with the full list loaded — zero misspellings. 207 total
+entries, still 0 duplicates.
+
 ## Follow-up (2026-10-22) — vendor/brand names and control-system tools
 
 Asked to add the vendor names this scan had deliberately left out (GE,

@@ -31,7 +31,11 @@ export const TECHNICAL_TERMS = [
   'solenoid', 'solenoids', 'actuator', 'actuators', 'manifold', 'manifolds',
   'flange', 'flanges', 'gasket', 'gaskets', 'strainer', 'strainers',
   'skid', 'skids', 'recuperator', 'recuperators', 'coalescer', 'coalescers',
-  'arrestor', 'arrestors',
+  'arrestor', 'arrestors', 'deaerator', 'deaerators', 'intercooler',
+  'intercoolers', 'aftercooler', 'aftercoolers', 'desander', 'desanders',
+  'eductor', 'eductors', 'diffuser', 'diffusers', 'desuperheater',
+  'desuperheaters', 'antisurge', 'blowdown', 'blowoff', 'venturi', 'venturis', 'rotameter',
+  'rotameters', 'flowmeter', 'flowmeters', 'wattmeter', 'wattmeters',
 
   // Instrumentation & test equipment
   'thermocouple', 'thermocouples', 'borescope', 'borescopes', 'borescoping',
@@ -67,6 +71,9 @@ export const TECHNICAL_TERMS = [
   'ppe', 'sop', 'mcc', 'avo', 'rpm', 'kva', 'kw', 'hz', 'hmi', 'emi',
   'sn', 'jb', 'jbs', 'rio', 'rios', 'ucp', 'ucps', 'psv', 'psvs', 'pcv',
   'pcvs', 'pdt', 'pdts', 'pdit', 'pdits', 'ovs', 'bsi', 'gd', 'stg',
+  'dcs', 'ats', 'mov', 'movs', 'sov', 'sovs', 'esdv', 'esdvs', 'bdv',
+  'bdvs', 'prv', 'prvs', 'lcp', 'lcps', 'rtu', 'rtus', 'modbus',
+  'profibus', 'fieldbus',
 
   // Units/readings commonly written lowercase in running text
   'psig', 'psia', 'psid',
