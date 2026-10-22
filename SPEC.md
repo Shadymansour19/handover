@@ -24,6 +24,56 @@ read this before re-deriving requirements from scratch in a future session.
   below. Deployed separately from migrations (`supabase functions deploy`),
   not via the GitHub integration.
 
+## Follow-up (2026-10-22) — seeded from this plant's real record text
+
+Asked to scan the actual database for engineering words the dictionary
+still didn't know. Direct DB reads are blocked for this session by the
+Claude Code auto-mode permission classifier (even a plain read-only
+`SELECT`), so the user ran the read-only query themselves
+(`work_scope`/`detailed_steps`/`comment`/`pending` from
+`maintenance_records`, `comment` from `operation_events`) and saved the
+output to a file for this session to read directly — same machine/
+filesystem either way, just outside that one gate.
+
+Ran the real text (452 rows, ~11.6KB) through the actual spellcheck
+pipeline with everything already in `TECHNICAL_TERMS` loaded: 54 distinct
+words still came back unrecognized. Checked each one's actual sentence in
+context (not guessed from the bare word) before deciding whether to add
+it. Added 17 genuine, generalizable terms: `overspeed`, `coalescer`(s),
+`arrestor`(s), `manlift`(s), `outstandings`, `hmi`, `emi`, `sn`, `jb`(s),
+`rio`(s), `psv`(s), `pdt`(s), `pdit`(s), `ovs`, `bsi` (borescope
+inspection — confirmed from context: "Carry out BSI for Axial Comp
+Stg10&11"), `gd` (gas detector — confirmed from context: "Fix Fault on
+GD-258C on Filter House"), `stg`.
+
+Deliberately left the other 37 unadded:
+
+- **Vendor/brand/product names** — GE, ABB, MTL, HIMatrix, Det-Tronics,
+  Petroment, Sikaflex. Real companies/products, not generic engineering
+  vocabulary this file should own; a different site using this same app
+  wouldn't necessarily use the same vendors.
+- **Plant-specific instrument tag prefixes too ambiguous to guess with
+  confidence** — MC, BC, SE, FG, XM, JP, MB, PPRF, AGB, PMI, AE, HSPT,
+  MRV, OS, ND. These are the letters right before a hyphen+number in tags
+  like "MC-E"/"SE-370/B"/"FG-2A" — `spellcheck.js`'s `WORD_PATTERN` splits
+  the hyphen off, isolating the prefix as its own "word" to check. This is
+  a structural gap, not a vocabulary gap: any NEW tag prefix this (or any)
+  plant starts using will get flagged the same way, one at a time, no
+  matter how large this list grows. A more durable fix would teach
+  `WORD_PATTERN`/`findMisspellings()` to recognize the tag SHAPE itself
+  (a short token immediately followed by a hyphen+digits in the original
+  text) and skip it regardless of which letters it is — not implemented
+  here, since it changes core matching behavior rather than just adding
+  data, and deserves its own look rather than bundling it into this scan.
+- **Pre-existing typos in already-saved records** — upto, alarams,
+  triggerd, priotized, apporval, houskeeping, falme, colling, caca,
+  amiant. Left as-is; this task only extends the dictionary going forward,
+  it doesn't touch existing records.
+
+Verified directly: re-ran the same real-text scan after the addition —
+the 17 added words dropped out of the flagged list, the 37 skipped ones
+are still there untouched, nothing else changed.
+
 ## Decision (2026-10-22) — built-in technical dictionary
 
 Asked how spellcheck decides a word is misspelled, which surfaced that

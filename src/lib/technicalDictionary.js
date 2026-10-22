@@ -60,4 +60,23 @@ export const TECHNICAL_TERMS = [
 
   // Units/readings commonly written lowercase in running text
   'psig', 'psia', 'psid',
+
+  // Found by scanning this plant's actual saved record text (2026-10-22) —
+  // words/abbreviations still flagged even with everything above already
+  // loaded, then checked one by one against the surrounding sentence they
+  // actually appeared in (not guessed from the word alone) and kept only
+  // if the usage was a genuine, generalizable industry term rather than a
+  // typo, a vendor/brand name (GE, ABB, MTL, HIMatrix, Det-Tronics,
+  // Sikaflex — real companies/products, not generic vocabulary this file
+  // should own), or a plant-specific instrument tag prefix too ambiguous
+  // to guess with confidence (MC, BC, SE, FG, XM, JP, MB, PPRF, AGB...) —
+  // those are better left to that site's own "Add to Dictionary" if they
+  // turn out to recur. "GD" and "BSI" made the cut anyway despite being
+  // short because the surrounding sentences left little doubt (gas
+  // detector; borescope inspection), and both are standard, widely used
+  // terms across the industry, not just this one site's shorthand.
+  'overspeed', 'coalescer', 'coalescers', 'arrestor', 'arrestors',
+  'manlift', 'manlifts', 'outstandings', 'hmi', 'emi', 'sn', 'jb', 'jbs',
+  'rio', 'rios', 'psv', 'psvs', 'pdt', 'pdts', 'pdit', 'pdits', 'ovs',
+  'bsi', 'gd', 'stg',
 ]
